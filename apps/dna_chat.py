@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import argparse
 import re
 import sys
 
@@ -14,6 +15,15 @@ from moss_dna_gpt.tokenizer import DnaTokenizer
 from moss_dna_gpt.trainer import load_checkpoint, resolve_device
 
 DNA_RE = re.compile(r'[^ACGTNacgtn]+')
+DEFAULT_CHECKPOINT = 'runs/physcomitrium_patens_quick_256/ckpt_step_50.pt'
+
+
+def parse_cli_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument('--checkpoint', default=DEFAULT_CHECKPOINT)
+    parser.add_argument('--device', default='auto')
+    args, _ = parser.parse_known_args()
+    return args
 
 
 def clean_dna(text: str) -> str:
@@ -68,14 +78,17 @@ def generate_continuation(
 
 
 def main() -> None:
+    cli = parse_cli_args()
     st.set_page_config(page_title='moss-dna-gpt', page_icon='🧬', layout='wide')
     st.title('moss-dna-gpt DNA completion UI')
     st.caption('This is a DNA prefix-completion interface. It is not a natural-language biology assistant.')
 
     with st.sidebar:
         st.header('Checkpoint')
-        checkpoint = st.text_input('Checkpoint path', value='runs/physcomitrium_patens_quick_256/ckpt_step_50.pt')
-        device = st.selectbox('Device', ['auto', 'cpu', 'cuda'], index=0)
+        checkpoint = st.text_input('Checkpoint path', value=cli.checkpoint)
+        device_options = ['auto', 'cpu', 'cuda']
+        default_device_index = device_options.index(cli.device) if cli.device in device_options else 0
+        device = st.selectbox('Device', device_options, index=default_device_index)
         st.header('Sampling')
         max_new_tokens = st.slider('Max new bases', min_value=1, max_value=2048, value=256, step=1)
         temperature = st.slider('Temperature', min_value=0.1, max_value=2.0, value=0.8, step=0.05)
@@ -127,8 +140,7 @@ def main() -> None:
             st.subheader(f'Generation {i}')
             st.write(f"device: `{item['device']}`  step: `{item['step']}`  params: `{item['param_count']}`  temperature: `{item['temperature']}`  top_k: `{item['top_k']}`")
             st.text_area('Output DNA', value=item['output'], height=160, key=f'out_{i}')
-            stats = item['stats']
-            st.json(stats)
+            st.json(item['stats'])
 
 
 if __name__ == '__main__':

@@ -23,6 +23,8 @@ def main() -> None:
     parser.add_argument('--device')
     parser.add_argument('--learning-rate', type=float)
     parser.add_argument('--num-threads', type=int)
+    parser.add_argument('--num-workers', type=int)
+    parser.add_argument('--streaming', action='store_true', help='Read window files lazily. Use this for sharded datasets.')
     parser.add_argument('--n-layer', type=int)
     parser.add_argument('--n-head', type=int)
     parser.add_argument('--n-embd', type=int)
@@ -31,10 +33,12 @@ def main() -> None:
     args = parser.parse_args()
 
     cfg = load_train_config(args.config)
-    for name in ['train_path', 'val_path', 'run_dir', 'max_steps', 'batch_size', 'device', 'learning_rate', 'num_threads']:
+    for name in ['train_path', 'val_path', 'run_dir', 'max_steps', 'batch_size', 'device', 'learning_rate', 'num_threads', 'num_workers']:
         value = getattr(args, name)
         if value is not None:
             setattr(cfg, name, value)
+    if args.streaming:
+        cfg.streaming = True
     model = dict(cfg.model or GPTConfig().to_dict())
     for key in ['n_layer', 'n_head', 'n_embd', 'block_size', 'dropout']:
         value = getattr(args, key)

@@ -82,7 +82,7 @@ def train(cfg: TrainConfig) -> dict:
     if len(train_ds) == 0:
         raise ValueError('empty training dataset')
 
-    train_loader = DataLoader(train_ds, batch_size=cfg.batch_size, shuffle=True, num_workers=cfg.num_workers, drop_last=True)
+    train_loader = DataLoader(train_ds, batch_size=cfg.batch_size, shuffle=True, num_workers=cfg.num_workers, drop_last=False)
     val_loader = DataLoader(val_ds, batch_size=cfg.batch_size, shuffle=False, num_workers=cfg.num_workers)
 
     model = GPT(model_cfg).to(device)

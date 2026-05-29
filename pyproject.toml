@@ -10,10 +10,12 @@ dependencies = ["torch>=2.0", "PyYAML>=6.0"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+app = ["streamlit>=1.30"]
+all = ["pytest>=8.0", "streamlit>=1.30"]
 
 [tool.setuptools.packages.find]
 include = ["moss_dna_gpt*"]
-exclude = ["data*", "runs*", "tests*", "configs*", "manifests*", "docs*", "scripts*"]
+exclude = ["data*", "runs*", "tests*", "configs*", "manifests*", "docs*", "scripts*", "apps*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -18,8 +18,51 @@ cd moss-dna-gpt
 python -m venv .venv
 # Windows PowerShell: .venv\Scripts\Activate.ps1
 source .venv/bin/activate
+python -m pip install --upgrade pip
 pip install -e ".[dev]"
 ```
+
+For the optional Streamlit UI:
+
+```bash
+pip install -e ".[app]"
+```
+
+## GPU / device check
+
+Training uses `--device auto` by default in the real-data quickstart. If PyTorch can see CUDA, the scripts select `cuda`; otherwise they fall back to `cpu`.
+
+```bash
+python scripts/check_device.py
+```
+
+If `cuda_available` is `false` on a machine with an NVIDIA GPU, install the CUDA-enabled PyTorch wheel that matches your driver from the official PyTorch selector.
+
+## Fastest real-data quickstart
+
+This fetches one default moss genome target, prepares windows under `data/processed/...`, and starts a short quick training run. Real FASTA and checkpoints stay under `data/` and `runs/`, which are ignored by Git.
+
+```bash
+python scripts/run_real_quickstart.py --profile quick --device auto
+```
+
+For the 5M-class MVP target:
+
+```bash
+python scripts/run_real_quickstart.py --profile 5m --device auto --max-steps 1000
+```
+
+After training, the script prints the exact `generate.py`, `eval_markov.py`, and Streamlit UI commands for the produced checkpoint.
+
+## Streamlit DNA completion UI
+
+This app is a DNA prefix-completion interface. It is not a natural-language biology assistant.
+
+```bash
+streamlit run apps/dna_chat.py -- --checkpoint runs/physcomitrium_patens_quick_256/ckpt_step_50.pt
+```
+
+In the UI, paste a DNA prefix such as `ACGTACGT`, choose sampling settings, and generate continuation bases.
 
 ## Test
 

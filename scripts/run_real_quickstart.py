@@ -56,6 +56,7 @@ def main() -> None:
     parser.add_argument('--block-size', type=int, default=None)
     parser.add_argument('--stride', type=int, default=None)
     parser.add_argument('--max-n-rate', type=float, default=0.2)
+    parser.add_argument('--max-windows', type=int, default=None, help='Cap prepared windows. Default: 20000 for quick, unlimited for 5m. Use 0 for unlimited.')
     parser.add_argument('--max-steps', type=int, default=None)
     parser.add_argument('--batch-size', type=int, default=None)
     parser.add_argument('--device', default='auto')
@@ -71,6 +72,12 @@ def main() -> None:
     stride = args.stride or (128 if args.profile == 'quick' else 512)
     max_steps = args.max_steps or (50 if args.profile == 'quick' else 1000)
     batch_size = args.batch_size or (8 if args.profile == 'quick' else 4)
+    if args.max_windows is None:
+        max_windows = 20000 if args.profile == 'quick' else None
+    elif args.max_windows <= 0:
+        max_windows = None
+    else:
+        max_windows = args.max_windows
     processed_dir = Path(args.processed_dir or f'data/processed/physcomitrium_patens_{args.profile}_{block_size}')
     run_dir = Path(args.run_dir or f'runs/physcomitrium_patens_{args.profile}_{block_size}')
 
@@ -100,6 +107,7 @@ def main() -> None:
         seed=42,
         shuffle=True,
         invalid_policy='replace_n',
+        max_windows=max_windows,
     )
 
     result: dict = {
@@ -110,6 +118,7 @@ def main() -> None:
         'fasta_total_bp': fasta_summary['total_bp'],
         'fasta_n_rate': fasta_summary['n_rate'],
         'processed_dir': str(processed_dir),
+        'max_windows': max_windows,
         'window_manifest': manifest,
         'provenance': provenance,
     }
@@ -125,7 +134,7 @@ def main() -> None:
         device=args.device,
         batch_size=batch_size,
         max_steps=max_steps,
-        eval_interval=max(10, min(100, max_steps)),
+        eval_interval=min(100, max_steps),
         eval_batches=10,
         log_interval=10,
         num_threads=args.num_threads,
@@ -135,6 +144,7 @@ def main() -> None:
     result['next_commands'] = {
         'generate': f'python scripts/generate.py --checkpoint {run_dir / ("ckpt_step_" + str(max_steps) + ".pt")} --prefix ACGT --max-new-tokens 128 --device auto',
         'eval_markov': f'python scripts/eval_markov.py --train-path {processed_dir / "train.txt"} --test-path {processed_dir / "test.txt"} --checkpoint {run_dir / ("ckpt_step_" + str(max_steps) + ".pt")} --device auto',
+        'ui': f'streamlit run apps/dna_chat.py -- --checkpoint {run_dir / ("ckpt_step_" + str(max_steps) + ".pt")}',
     }
     print(json.dumps(result, indent=2, ensure_ascii=False))
 

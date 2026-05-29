@@ -22,6 +22,12 @@ python -m pip install --upgrade pip
 pip install -e ".[dev]"
 ```
 
+For the optional Streamlit UI:
+
+```bash
+pip install -e ".[app]"
+```
+
 ## GPU / device check
 
 Training uses `--device auto` by default in the real-data quickstart. If PyTorch can see CUDA, the scripts select `cuda`; otherwise they fall back to `cpu`.
@@ -46,7 +52,17 @@ For the 5M-class MVP target:
 python scripts/run_real_quickstart.py --profile 5m --device auto --max-steps 1000
 ```
 
-After training, the script prints the exact `generate.py` and `eval_markov.py` commands for the produced checkpoint.
+After training, the script prints the exact `generate.py`, `eval_markov.py`, and Streamlit UI commands for the produced checkpoint.
+
+## Streamlit DNA completion UI
+
+This app is a DNA prefix-completion interface. It is not a natural-language biology assistant.
+
+```bash
+streamlit run apps/dna_chat.py -- --checkpoint runs/physcomitrium_patens_quick_256/ckpt_step_50.pt
+```
+
+In the UI, paste a DNA prefix such as `ACGTACGT`, choose sampling settings, and generate continuation bases.
 
 ## Test
 

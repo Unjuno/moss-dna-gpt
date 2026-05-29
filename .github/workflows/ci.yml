@@ -22,6 +22,8 @@ jobs:
         run: pytest
       - name: Device check
         run: python scripts/check_device.py
+      - name: Compile Streamlit app
+        run: python -m py_compile apps/dna_chat.py
       - name: Dummy smoke pipeline
         run: |
           python scripts/inspect_fasta.py tests/fixtures/dummy.fa

@@ -2,7 +2,7 @@ name: ci
 
 on:
   push:
-    branches: [main, mvp-initial-dna-gpt]
+    branches: [main, mvp-initial-dna-gpt, add-real-data-quickstart]
   pull_request:
 
 jobs:
@@ -20,6 +20,8 @@ jobs:
           pip install -e ".[dev]"
       - name: Pytest
         run: pytest
+      - name: Device check
+        run: python scripts/check_device.py
       - name: Dummy smoke pipeline
         run: |
           python scripts/inspect_fasta.py tests/fixtures/dummy.fa
@@ -27,3 +29,6 @@ jobs:
           python scripts/train.py --train-path data/processed_dummy/train.txt --val-path data/processed_dummy/val.txt --run-dir runs/dummy --max-steps 10 --batch-size 2 --n-layer 1 --n-head 1 --n-embd 32 --block-size 32 --device cpu
           python scripts/generate.py --checkpoint runs/dummy/ckpt_step_10.pt --prefix ACGT --max-new-tokens 32 --device cpu
           python scripts/eval_markov.py --train-path data/processed_dummy/train.txt --test-path data/processed_dummy/test.txt --checkpoint runs/dummy/ckpt_step_10.pt --device cpu
+      - name: Real quickstart smoke without network
+        run: |
+          python scripts/run_real_quickstart.py --fasta-path tests/fixtures/dummy.fa --profile quick --block-size 32 --stride 16 --max-steps 2 --batch-size 2 --device cpu --run-dir runs/quickstart_dummy --processed-dir data/processed_quickstart_dummy

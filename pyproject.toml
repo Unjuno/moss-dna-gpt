@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "moss-dna-gpt"
 version = "0.1.0"
@@ -6,6 +10,10 @@ dependencies = ["torch>=2.0", "PyYAML>=6.0"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+
+[tool.setuptools.packages.find]
+include = ["moss_dna_gpt*"]
+exclude = ["data*", "runs*", "tests*", "configs*", "manifests*", "docs*", "scripts*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

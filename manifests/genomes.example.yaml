@@ -1,0 +1,8 @@
+# Example only. Do not commit real local FASTA/GFF3 files.
+genomes:
+  - id: physcomitrium_patens_example
+    species: "Physcomitrium patens"
+    fasta_path: "data/raw/physcomitrium_patens/genome.fa.gz"
+    gff3_path: null
+    source: "manual"
+    notes: "MVP uses one FASTA only; GFF3 is intentionally unused in initial training."

@@ -25,6 +25,15 @@ def test_verify_gzip_readable(tmp_path):
     assert result['sample_bytes'] == 1
 
 
+def test_verify_gzip_readable_rejects_empty_gzip(tmp_path):
+    path = tmp_path / 'empty.fna.gz'
+    with gzip.open(path, 'wb'):
+        pass
+    result = verify_gzip_readable(path)
+    assert result['verified_readable'] is False
+    assert 'empty' in result['error']
+
+
 def test_verify_gzip_readable_rejects_plain_text(tmp_path):
     path = tmp_path / 'bad.fna.gz'
     path.write_text('not gzip', encoding='utf-8')

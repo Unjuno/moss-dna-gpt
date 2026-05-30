@@ -1,4 +1,6 @@
-from moss_dna_gpt.genome_fetch import parse_assembly_summary, select_assembly, safe_name
+import gzip
+
+from moss_dna_gpt.genome_fetch import parse_assembly_summary, select_assembly, safe_name, verify_gzip_readable
 
 
 def test_parse_assembly_summary_and_selects_latest_full_scaffold():
@@ -12,3 +14,20 @@ def test_parse_assembly_summary_and_selects_latest_full_scaffold():
 
 def test_safe_name():
     assert safe_name("Physcomitrium patens") == "physcomitrium_patens"
+
+
+def test_verify_gzip_readable(tmp_path):
+    path = tmp_path / 'ok.fna.gz'
+    with gzip.open(path, 'wb') as fp:
+        fp.write(b'>x\nACGT\n')
+    result = verify_gzip_readable(path)
+    assert result['verified_readable'] is True
+    assert result['sample_bytes'] == 1
+
+
+def test_verify_gzip_readable_rejects_plain_text(tmp_path):
+    path = tmp_path / 'bad.fna.gz'
+    path.write_text('not gzip', encoding='utf-8')
+    result = verify_gzip_readable(path)
+    assert result['verified_readable'] is False
+    assert result['error']

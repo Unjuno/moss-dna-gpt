@@ -33,7 +33,7 @@ jobs:
           python scripts/eval_markov.py --train-path data/processed_dummy/train.txt --test-path data/processed_dummy/test.txt --checkpoint runs/dummy/ckpt_step_10.pt --device cpu
       - name: Sharded streaming smoke pipeline
         run: |
-          python scripts/prepare_windows.py tests/fixtures/dummy.fa --out-dir data/processed_sharded_dummy --block-size 32 --stride 16 --max-n-rate 1.0 --max-windows 8 --shard --shard-size 2 --train-ratio 0.5 --val-ratio 0.25
+          python scripts/prepare_windows.py tests/fixtures/dummy.fa --out-dir data/processed_sharded_dummy --block-size 32 --stride 16 --max-n-rate 1.0 --max-windows 4 --shard --shard-size 2 --train-ratio 0.25 --val-ratio 0.25
           python scripts/train.py --train-path data/processed_sharded_dummy/train --val-path data/processed_sharded_dummy/val --run-dir runs/sharded_dummy --max-steps 2 --batch-size 2 --n-layer 1 --n-head 1 --n-embd 32 --block-size 32 --device cpu --streaming
           python scripts/eval_markov.py --train-path data/processed_sharded_dummy/train --test-path data/processed_sharded_dummy/test --checkpoint runs/sharded_dummy/ckpt_step_2.pt --device cpu --streaming
       - name: Real quickstart smoke without network

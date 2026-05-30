@@ -46,7 +46,7 @@ This fetches one default moss genome target, prepares windows under `data/proces
 python scripts/run_real_quickstart.py --profile quick --device auto
 ```
 
-For the 5M-class MVP target:
+For the 5M-class MVP target, the quickstart writes sharded windows and trains with streaming reads by default:
 
 ```bash
 python scripts/run_real_quickstart.py --profile 5m --device auto --max-steps 1000
@@ -74,19 +74,26 @@ pytest
 
 ```bash
 python scripts/inspect_fasta.py tests/fixtures/dummy.fa
-python scripts/prepare_windows.py tests/fixtures/dummy.fa --out-dir data/processed_dummy --block-size 32 --stride 16 --max-n-rate 1.0
+python scripts/prepare_windows.py tests/fixtures/dummy.fa --out-dir data/processed_dummy --block-size 32 --stride 16 --max-n-rate 1.0 --max-windows 4
 python scripts/train.py --train-path data/processed_dummy/train.txt --val-path data/processed_dummy/val.txt --run-dir runs/dummy --max-steps 10 --batch-size 2 --n-layer 1 --n-head 1 --n-embd 32 --block-size 32 --device cpu
 python scripts/generate.py --checkpoint runs/dummy/ckpt_step_10.pt --prefix ACGT --max-new-tokens 32 --device cpu
 python scripts/eval_markov.py --train-path data/processed_dummy/train.txt --test-path data/processed_dummy/test.txt --checkpoint runs/dummy/ckpt_step_10.pt --device cpu
 ```
 
-## 5M-class config
+## Sharded 5M-class training
 
-`configs/train_5m_1024.yaml` uses `n_layer=6`, `n_head=4`, `n_embd=256`, `block_size=1024`.
+`configs/train_5m_1024.yaml` uses `n_layer=6`, `n_head=4`, `n_embd=256`, `block_size=1024`, and streaming dataset reads.
 
 ```bash
-python scripts/prepare_windows.py data/raw/moss/genome.fa.gz --out-dir data/processed --block-size 1024 --stride 512 --max-n-rate 0.2
-python scripts/train.py --config configs/train_5m_1024.yaml --max-steps 1000
+python scripts/prepare_windows.py data/raw/moss/genome.fa.gz \
+  --out-dir data/processed \
+  --block-size 1024 \
+  --stride 512 \
+  --max-n-rate 0.2 \
+  --shard \
+  --shard-size 100000
+
+python scripts/train.py --config configs/train_5m_1024.yaml --streaming --max-steps 1000
 ```
 
 Lower DNA-GPT loss than Markov baselines only means the model captured sequence regularities under this split. It does not prove function understanding, SNP effect prediction, adaptation prediction, or cross-species generalization.

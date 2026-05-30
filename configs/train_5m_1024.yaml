@@ -1,5 +1,5 @@
-train_path: data/processed/train.txt
-val_path: data/processed/val.txt
+train_path: data/processed/train
+val_path: data/processed/val
 run_dir: runs/5m_1024
 seed: 42
 device: auto
@@ -13,6 +13,7 @@ log_interval: 10
 num_workers: 0
 num_threads: 1
 grad_clip: 1.0
+streaming: true
 model:
   vocab_size: 9
   block_size: 1024

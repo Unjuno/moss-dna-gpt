@@ -10,7 +10,7 @@ import torch
 from torch.utils.data import DataLoader
 import yaml
 
-from .dataset import DnaWindowDataset
+from .dataset import DnaWindowDataset, StreamingDnaWindowDataset
 from .model import GPT, GPTConfig
 from .tokenizer import DnaTokenizer
 
@@ -32,6 +32,7 @@ class TrainConfig:
     num_workers: int = 0
     num_threads: int = 1
     grad_clip: float = 1.0
+    streaming: bool = False
     model: dict | None = None
 
 
@@ -67,6 +68,25 @@ def evaluate(model: GPT, loader: DataLoader, device: str, batches: int) -> float
     return sum(values) / max(len(values), 1)
 
 
+def _has_data(path: str | Path, streaming: bool) -> bool:
+    p = Path(path)
+    if streaming or p.is_dir():
+        if p.is_file():
+            return p.stat().st_size > 0
+        return any(child.is_file() and child.suffix == '.txt' and child.stat().st_size > 0 for child in p.glob('**/*.txt'))
+    try:
+        return len(DnaWindowDataset(p)) > 0
+    except FileNotFoundError:
+        return False
+
+
+def _make_dataset(path: str | Path, tokenizer: DnaTokenizer, block_size: int, streaming: bool, split_name: str | None = None):
+    p = Path(path)
+    if streaming or p.is_dir():
+        return StreamingDnaWindowDataset(p, tokenizer=tokenizer, block_size=block_size, split_name=split_name)
+    return DnaWindowDataset(p, tokenizer=tokenizer, block_size=block_size)
+
+
 def train(cfg: TrainConfig) -> dict:
     if cfg.num_threads:
         torch.set_num_threads(cfg.num_threads)
@@ -77,19 +97,22 @@ def train(cfg: TrainConfig) -> dict:
     model_cfg = GPTConfig(**(cfg.model or {}))
     model_cfg.vocab_size = tokenizer.vocab_size
 
-    train_ds = DnaWindowDataset(cfg.train_path, tokenizer, model_cfg.block_size)
-    val_ds = DnaWindowDataset(cfg.val_path, tokenizer, model_cfg.block_size)
-    if len(train_ds) == 0:
+    train_streaming = cfg.streaming or Path(cfg.train_path).is_dir()
+    val_streaming = cfg.streaming or Path(cfg.val_path).is_dir()
+    if not _has_data(cfg.train_path, train_streaming):
         raise ValueError('empty training dataset')
 
-    train_loader = DataLoader(train_ds, batch_size=cfg.batch_size, shuffle=True, num_workers=cfg.num_workers, drop_last=False)
-    val_loader = DataLoader(val_ds, batch_size=cfg.batch_size, shuffle=False, num_workers=cfg.num_workers)
+    train_ds = _make_dataset(cfg.train_path, tokenizer, model_cfg.block_size, train_streaming)
+    val_ds = _make_dataset(cfg.val_path, tokenizer, model_cfg.block_size, val_streaming) if _has_data(cfg.val_path, val_streaming) else None
+
+    train_loader = DataLoader(train_ds, batch_size=cfg.batch_size, shuffle=(not train_streaming), num_workers=cfg.num_workers, drop_last=False)
+    val_loader = DataLoader(val_ds, batch_size=cfg.batch_size, shuffle=False, num_workers=cfg.num_workers) if val_ds is not None else None
 
     model = GPT(model_cfg).to(device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=cfg.learning_rate, weight_decay=cfg.weight_decay)
     run_dir = Path(cfg.run_dir)
     run_dir.mkdir(parents=True, exist_ok=True)
-    (run_dir / 'config.json').write_text(json.dumps({**cfg.__dict__, 'model': model_cfg.to_dict()}, indent=2), encoding='utf-8')
+    (run_dir / 'config.json').write_text(json.dumps({**cfg.__dict__, 'model': model_cfg.to_dict(), 'resolved_streaming': train_streaming}, indent=2), encoding='utf-8')
 
     rows: list[dict] = []
     data_iter = iter(train_loader)
@@ -110,7 +133,7 @@ def train(cfg: TrainConfig) -> dict:
         if step % cfg.log_interval == 0 or step == 1:
             rows.append({'step': step, 'train_loss': last_loss, 'val_loss': ''})
         if step % cfg.eval_interval == 0 or step == cfg.max_steps:
-            val_loss = evaluate(model, val_loader, device, cfg.eval_batches) if len(val_ds) else float('nan')
+            val_loss = evaluate(model, val_loader, device, cfg.eval_batches) if val_loader is not None else float('nan')
             rows.append({'step': step, 'train_loss': last_loss, 'val_loss': val_loss})
             torch.save({'model': model.state_dict(), 'model_config': model_cfg.to_dict(), 'step': step}, run_dir / f'ckpt_step_{step}.pt')
 
@@ -119,7 +142,7 @@ def train(cfg: TrainConfig) -> dict:
         writer.writeheader()
         writer.writerows(rows)
 
-    return {'run_dir': str(run_dir), 'final_step': cfg.max_steps, 'param_count': model.num_parameters(), 'last_train_loss': last_loss}
+    return {'run_dir': str(run_dir), 'final_step': cfg.max_steps, 'param_count': model.num_parameters(), 'last_train_loss': last_loss, 'streaming': train_streaming}
 
 
 def load_checkpoint(path: str | Path, map_location: str = 'cpu') -> tuple[GPT, dict]:

@@ -69,7 +69,7 @@ def windows(
             break
         stats['candidates'] += 1
         w = seq[i:i + block_size]
-        normalized, bad_count = _normalize_window(w, invalid_policy)
+        normalized, _ = _normalize_window(w, invalid_policy)
         if normalized is None:
             stats['dropped_invalid'] += 1
             continue
@@ -269,10 +269,7 @@ def prepare_window_shards_from_fasta(
 def read_windows(path):
     p = Path(path)
     if p.is_dir():
-        values = []
-        for shard in sorted(p.glob('*.txt')):
-            values.extend(line.strip().upper() for line in shard.read_text(encoding='utf-8').splitlines() if line.strip())
-        return values
+        raise IsADirectoryError(f'{p} is a directory. Use StreamingDnaWindowDataset or resolve_window_files() for sharded datasets.')
     return [line.strip().upper() for line in p.read_text(encoding='utf-8').splitlines() if line.strip()]
 
 

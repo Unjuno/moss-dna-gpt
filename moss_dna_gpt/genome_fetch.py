@@ -65,6 +65,8 @@ def verify_gzip_readable(path: str | Path) -> dict:
     try:
         with gzip.open(p, 'rb') as fp:
             sample = fp.read(1)
+        if len(sample) == 0:
+            return {'verified_readable': False, 'sample_bytes': 0, 'error': 'gzip is readable but decompressed content is empty'}
         return {'verified_readable': True, 'sample_bytes': len(sample), 'error': None}
     except OSError as exc:
         return {'verified_readable': False, 'sample_bytes': 0, 'error': str(exc)}

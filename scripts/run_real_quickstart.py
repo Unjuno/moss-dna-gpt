@@ -117,6 +117,7 @@ def main() -> None:
         )
         train_path = processed_dir / 'train'
         val_path = processed_dir / 'val'
+        test_path = processed_dir / 'test'
     else:
         manifest = prepare_windows_from_fasta(
             fasta_path,
@@ -131,6 +132,7 @@ def main() -> None:
         )
         train_path = processed_dir / 'train.txt'
         val_path = processed_dir / 'val.txt'
+        test_path = processed_dir / 'test.txt'
 
     result: dict = {
         'profile': args.profile,
@@ -165,11 +167,13 @@ def main() -> None:
         streaming=use_shards,
         model=profile_model(args.profile, block_size),
     ))
+    checkpoint_path = run_dir / ("ckpt_step_" + str(max_steps) + ".pt")
+    streaming_flag = ' --streaming' if use_shards else ''
     result['train'] = train_result
     result['next_commands'] = {
-        'generate': f'python scripts/generate.py --checkpoint {run_dir / ("ckpt_step_" + str(max_steps) + ".pt")} --prefix ACGT --max-new-tokens 128 --device auto',
-        'eval_markov': f'python scripts/eval_markov.py --train-path {train_path} --test-path {processed_dir / "test" if use_shards else processed_dir / "test.txt"} --checkpoint {run_dir / ("ckpt_step_" + str(max_steps) + ".pt")} --device auto',
-        'ui': f'streamlit run apps/dna_chat.py -- --checkpoint {run_dir / ("ckpt_step_" + str(max_steps) + ".pt")}',
+        'generate': f'python scripts/generate.py --checkpoint {checkpoint_path} --prefix ACGT --max-new-tokens 128 --device auto',
+        'eval_markov': f'python scripts/eval_markov.py --train-path {train_path} --test-path {test_path} --checkpoint {checkpoint_path} --device auto{streaming_flag}',
+        'ui': f'streamlit run apps/dna_chat.py -- --checkpoint {checkpoint_path}',
     }
     print(json.dumps(result, indent=2, ensure_ascii=False))
 

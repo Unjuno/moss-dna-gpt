@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.request import Request, urlopen
+import gzip
 import hashlib
 import json
 import re
@@ -57,6 +58,16 @@ def _download_binary(url: str, path: Path, timeout: int = 60) -> str:
             out.write(chunk)
     tmp.replace(path)
     return h.hexdigest()
+
+
+def verify_gzip_readable(path: str | Path) -> dict:
+    p = Path(path)
+    try:
+        with gzip.open(p, 'rb') as fp:
+            sample = fp.read(1)
+        return {'verified_readable': True, 'sample_bytes': len(sample), 'error': None}
+    except OSError as exc:
+        return {'verified_readable': False, 'sample_bytes': 0, 'error': str(exc)}
 
 
 def parse_assembly_summary(text: str) -> list[dict[str, str]]:
@@ -132,6 +143,9 @@ def fetch_genome(
         sha256 = hashlib.sha256(fasta_path.read_bytes()).hexdigest()
     else:
         sha256 = _download_binary(selected.fasta_url, fasta_path, timeout=timeout)
+    gzip_verification = verify_gzip_readable(fasta_path)
+    if not gzip_verification['verified_readable']:
+        raise RuntimeError(f'Downloaded FASTA is not a readable gzip file: {fasta_path}: {gzip_verification["error"]}')
     manifest = {
         'dataset_id': DEFAULT_DATASET_ID,
         'created_at_unix': int(time.time()),
@@ -143,6 +157,7 @@ def fetch_genome(
         'fasta_url': selected.fasta_url,
         'fasta_path': str(fasta_path),
         'sha256': sha256,
+        'gzip_verification': gzip_verification,
         'policy': {
             'git_tracked': False,
             'reason': 'Real genome FASTA is local research data and must stay under data/.'

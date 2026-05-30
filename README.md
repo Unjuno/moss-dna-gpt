@@ -40,7 +40,7 @@ If `cuda_available` is `false` on a machine with an NVIDIA GPU, install the CUDA
 
 ## Fastest real-data quickstart
 
-This fetches one default moss genome target, prepares windows under `data/processed/...`, and starts a short quick training run. Real FASTA and checkpoints stay under `data/` and `runs/`, which are ignored by Git.
+This fetches one default moss genome target, verifies that the downloaded FASTA gzip is readable and non-empty, prepares windows under `data/processed/...`, and starts a short quick training run. Real FASTA and checkpoints stay under `data/` and `runs/`, which are ignored by Git.
 
 ```bash
 python scripts/run_real_quickstart.py --profile quick --device auto
@@ -52,7 +52,7 @@ For the 5M-class MVP target, the quickstart writes sharded windows and trains wi
 python scripts/run_real_quickstart.py --profile 5m --device auto --max-steps 1000
 ```
 
-After training, the script prints the exact `generate.py`, `eval_markov.py`, and Streamlit UI commands for the produced checkpoint.
+After training, the script prints the exact `generate.py`, `eval_markov.py`, and Streamlit UI commands for the produced checkpoint. For sharded 5M runs, the printed Markov command includes `--streaming`.
 
 ## Streamlit DNA completion UI
 
@@ -95,5 +95,9 @@ python scripts/prepare_windows.py data/raw/moss/genome.fa.gz \
 
 python scripts/train.py --config configs/train_5m_1024.yaml --streaming --max-steps 1000
 ```
+
+## Checkpoint safety
+
+Only load checkpoints that you created yourself or obtained from a trusted release. PyTorch checkpoint loading may execute unsafe pickle payloads on older PyTorch versions when `weights_only=True` is unavailable. Do not load arbitrary `.pt`, `.pth`, or `.ckpt` files.
 
 Lower DNA-GPT loss than Markov baselines only means the model captured sequence regularities under this split. It does not prove function understanding, SNP effect prediction, adaptation prediction, or cross-species generalization.

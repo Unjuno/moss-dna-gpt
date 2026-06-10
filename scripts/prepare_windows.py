@@ -25,6 +25,9 @@ def main() -> None:
     parser.add_argument('--val-ratio', type=float, default=0.1)
     parser.add_argument('--seed', type=int, default=42)
     parser.add_argument('--no-shuffle', action='store_true', help='Flat mode only. Sharded mode uses per-window random split assignment.')
+    parser.add_argument('--split-policy', choices=['window', 'sequence', 'contig'], default='window',
+                        help='How to assign windows to splits. "window" uses per-window random assignment (legacy). '
+                             '"sequence" or "contig" assigns each FASTA record wholly to one split before windowing.')
     parser.add_argument('--invalid-policy', choices=['skip', 'replace_n', 'error'], default='skip')
     args = parser.parse_args()
 
@@ -42,6 +45,7 @@ def main() -> None:
             val_ratio=args.val_ratio,
             seed=args.seed,
             invalid_policy=args.invalid_policy,
+            split_policy=args.split_policy,
         )
     else:
         manifest = prepare_windows_from_fasta(

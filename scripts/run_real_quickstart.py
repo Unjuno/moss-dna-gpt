@@ -60,6 +60,9 @@ def main() -> None:
     parser.add_argument('--shard', action='store_true', help='Force sharded preparation and streaming training. Default: enabled for 5m.')
     parser.add_argument('--flat', action='store_true', help='Force legacy flat text preparation. Not recommended for full 5m runs.')
     parser.add_argument('--shard-size', type=int, default=100000)
+    parser.add_argument('--split-policy', choices=['window', 'sequence', 'contig'], default='window',
+                        help='How to assign windows to splits. "window" uses per-window random assignment (legacy). '
+                             '"sequence" or "contig" assigns each FASTA record wholly to one split before windowing.')
     parser.add_argument('--max-steps', type=int, default=None)
     parser.add_argument('--batch-size', type=int, default=None)
     parser.add_argument('--device', default='auto')
@@ -114,6 +117,7 @@ def main() -> None:
             invalid_policy='replace_n',
             max_windows=max_windows,
             shard_size=args.shard_size,
+            split_policy=args.split_policy,
         )
         train_path = processed_dir / 'train'
         val_path = processed_dir / 'val'

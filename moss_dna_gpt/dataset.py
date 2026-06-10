@@ -190,6 +190,7 @@ def prepare_window_shards_from_fasta(
     invalid_policy='skip',
     max_windows: int | None = None,
     shard_size: int = 100000,
+    split_policy: str = 'window',
 ) -> dict:
     if block_size <= 0 or stride <= 0:
         raise ValueError('block_size and stride must be positive')
@@ -199,6 +200,8 @@ def prepare_window_shards_from_fasta(
         raise ValueError('max_windows must be non-negative or None')
     if train_ratio < 0 or val_ratio < 0 or train_ratio + val_ratio > 1:
         raise ValueError('invalid train/val ratios')
+    if split_policy not in ('window', 'sequence', 'contig'):
+        raise ValueError(f"split_policy must be 'window', 'sequence', or 'contig', got {split_policy!r}")
 
     out_path = Path(out_dir)
     out_path.mkdir(parents=True, exist_ok=True)
@@ -207,41 +210,80 @@ def prepare_window_shards_from_fasta(
     per_sequence = []
     total = 0
     truncated = False
+    sequence_assignments = {}
 
     try:
-        for record in iter_fasta(fasta):
-            seq_stats = {'name': record.name, 'length': record.length, 'kept': 0, 'candidates': 0, 'dropped_n_rate': 0, 'dropped_invalid': 0, 'dropped_short': 0}
-            if record.length < block_size:
-                seq_stats['dropped_short'] = 1
+        if split_policy in ('sequence', 'contig'):
+            records = list(iter_fasta(fasta))
+            seq_names = [r.name for r in records]
+            assignments = split(seq_names, train_ratio, val_ratio, seed, shuffle=True)
+            name_to_split = {}
+            for split_name, names in assignments.items():
+                for name in names:
+                    name_to_split[name] = split_name
+
+            for record in records:
+                seq_split = name_to_split[record.name]
+                sequence_assignments[record.name] = seq_split
+                seq_stats = {'name': record.name, 'length': record.length, 'kept': 0, 'candidates': 0, 'dropped_n_rate': 0, 'dropped_invalid': 0, 'dropped_short': 0, 'split': seq_split}
+                if record.length < block_size:
+                    seq_stats['dropped_short'] = 1
+                    per_sequence.append(seq_stats)
+                    continue
+                sequence = record.sequence.upper()
+                for i in range(0, len(sequence) - block_size + 1, stride):
+                    if max_windows is not None and total >= max_windows:
+                        truncated = True
+                        break
+                    seq_stats['candidates'] += 1
+                    window = sequence[i:i + block_size]
+                    normalized, _ = _normalize_window(window, invalid_policy)
+                    if normalized is None:
+                        seq_stats['dropped_invalid'] += 1
+                        continue
+                    if normalized.count('N') / block_size > max_n_rate:
+                        seq_stats['dropped_n_rate'] += 1
+                        continue
+                    writers[seq_split].write(normalized)
+                    seq_stats['kept'] += 1
+                    total += 1
                 per_sequence.append(seq_stats)
-                continue
-            sequence = record.sequence.upper()
-            for i in range(0, len(sequence) - block_size + 1, stride):
-                if max_windows is not None and total >= max_windows:
-                    truncated = True
+                if truncated:
                     break
-                seq_stats['candidates'] += 1
-                window = sequence[i:i + block_size]
-                normalized, _ = _normalize_window(window, invalid_policy)
-                if normalized is None:
-                    seq_stats['dropped_invalid'] += 1
+        else:
+            for record in iter_fasta(fasta):
+                seq_stats = {'name': record.name, 'length': record.length, 'kept': 0, 'candidates': 0, 'dropped_n_rate': 0, 'dropped_invalid': 0, 'dropped_short': 0}
+                if record.length < block_size:
+                    seq_stats['dropped_short'] = 1
+                    per_sequence.append(seq_stats)
                     continue
-                if normalized.count('N') / block_size > max_n_rate:
-                    seq_stats['dropped_n_rate'] += 1
-                    continue
-                r = rnd.random()
-                if r < train_ratio:
-                    split_name = 'train'
-                elif r < train_ratio + val_ratio:
-                    split_name = 'val'
-                else:
-                    split_name = 'test'
-                writers[split_name].write(normalized)
-                seq_stats['kept'] += 1
-                total += 1
-            per_sequence.append(seq_stats)
-            if truncated:
-                break
+                sequence = record.sequence.upper()
+                for i in range(0, len(sequence) - block_size + 1, stride):
+                    if max_windows is not None and total >= max_windows:
+                        truncated = True
+                        break
+                    seq_stats['candidates'] += 1
+                    window = sequence[i:i + block_size]
+                    normalized, _ = _normalize_window(window, invalid_policy)
+                    if normalized is None:
+                        seq_stats['dropped_invalid'] += 1
+                        continue
+                    if normalized.count('N') / block_size > max_n_rate:
+                        seq_stats['dropped_n_rate'] += 1
+                        continue
+                    r = rnd.random()
+                    if r < train_ratio:
+                        split_name = 'train'
+                    elif r < train_ratio + val_ratio:
+                        split_name = 'val'
+                    else:
+                        split_name = 'test'
+                    writers[split_name].write(normalized)
+                    seq_stats['kept'] += 1
+                    total += 1
+                per_sequence.append(seq_stats)
+                if truncated:
+                    break
     finally:
         for writer in writers.values():
             writer.close()
@@ -256,12 +298,16 @@ def prepare_window_shards_from_fasta(
         'truncated': truncated,
         'shard_size': shard_size,
         'seed': seed,
-        'split_policy': 'per-window random assignment using train_ratio and val_ratio',
+        'train_ratio': train_ratio,
+        'val_ratio': val_ratio,
+        'split_policy': split_policy,
         'total_windows': total,
         'splits': {name: writers[name].total for name in SPLITS},
         'shards': {name: writers[name].files for name in SPLITS},
         'sequences': per_sequence,
     }
+    if split_policy in ('sequence', 'contig'):
+        manifest['sequence_assignments'] = sequence_assignments
     (out_path / 'manifest.json').write_text(json.dumps(manifest, indent=2), encoding='utf-8')
     return manifest
 

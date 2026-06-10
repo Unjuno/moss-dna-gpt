@@ -25,6 +25,7 @@ def main() -> None:
     parser.add_argument('--num-threads', type=int)
     parser.add_argument('--num-workers', type=int)
     parser.add_argument('--streaming', action='store_true', help='Read window files lazily. Use this for sharded datasets.')
+    parser.add_argument('--resume-from', help='Path to checkpoint .pt file to resume training from')
     parser.add_argument('--n-layer', type=int)
     parser.add_argument('--n-head', type=int)
     parser.add_argument('--n-embd', type=int)
@@ -39,6 +40,8 @@ def main() -> None:
             setattr(cfg, name, value)
     if args.streaming:
         cfg.streaming = True
+    if args.resume_from is not None:
+        cfg.resume_from = args.resume_from
     model = dict(cfg.model or GPTConfig().to_dict())
     for key in ['n_layer', 'n_head', 'n_embd', 'block_size', 'dropout']:
         value = getattr(args, key)

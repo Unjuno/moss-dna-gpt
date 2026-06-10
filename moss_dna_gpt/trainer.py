@@ -34,6 +34,7 @@ class TrainConfig:
     grad_clip: float = 1.0
     streaming: bool = False
     model: dict | None = None
+    resume_from: str | None = None
 
 
 def load_train_config(path: str | Path) -> TrainConfig:
@@ -90,12 +91,41 @@ def _make_dataset(path: str | Path, tokenizer: DnaTokenizer, block_size: int, st
 def train(cfg: TrainConfig) -> dict:
     if cfg.num_threads:
         torch.set_num_threads(cfg.num_threads)
-    set_seed(cfg.seed)
     device = resolve_device(cfg.device)
 
     tokenizer = DnaTokenizer()
-    model_cfg = GPTConfig(**(cfg.model or {}))
-    model_cfg.vocab_size = tokenizer.vocab_size
+
+    start_step = 0
+    rows: list[dict] = []
+    if cfg.resume_from is not None:
+        resume_path = Path(cfg.resume_from)
+        checkpoint = torch.load(resume_path, map_location=device, weights_only=True)
+        model_cfg = GPTConfig(**checkpoint['model_config'])
+        model_cfg.vocab_size = tokenizer.vocab_size
+        model = GPT(model_cfg).to(device)
+        model.load_state_dict(checkpoint['model'])
+        model.train()
+        optimizer = torch.optim.AdamW(model.parameters(), lr=cfg.learning_rate, weight_decay=cfg.weight_decay)
+        if 'optimizer' in checkpoint:
+            optimizer.load_state_dict(checkpoint['optimizer'])
+        if 'rng' in checkpoint:
+            rng = checkpoint['rng']
+            random.setstate(rng['random'])
+            torch.set_rng_state(rng['torch'].cpu())
+            if rng['cuda'] is not None and torch.cuda.is_available():
+                torch.cuda.set_rng_state_all([s.cpu() for s in rng['cuda']])
+        start_step = checkpoint['step']
+        loss_csv = resume_path.parent / 'loss.csv'
+        if loss_csv.exists():
+            with loss_csv.open('r', encoding='utf-8') as fp:
+                for row in csv.DictReader(fp):
+                    rows.append(row)
+    else:
+        set_seed(cfg.seed)
+        model_cfg = GPTConfig(**(cfg.model or {}))
+        model_cfg.vocab_size = tokenizer.vocab_size
+        model = GPT(model_cfg).to(device)
+        optimizer = torch.optim.AdamW(model.parameters(), lr=cfg.learning_rate, weight_decay=cfg.weight_decay)
 
     train_streaming = cfg.streaming or Path(cfg.train_path).is_dir()
     val_streaming = cfg.streaming or Path(cfg.val_path).is_dir()
@@ -108,16 +138,13 @@ def train(cfg: TrainConfig) -> dict:
     train_loader = DataLoader(train_ds, batch_size=cfg.batch_size, shuffle=(not train_streaming), num_workers=cfg.num_workers, drop_last=False)
     val_loader = DataLoader(val_ds, batch_size=cfg.batch_size, shuffle=False, num_workers=cfg.num_workers) if val_ds is not None else None
 
-    model = GPT(model_cfg).to(device)
-    optimizer = torch.optim.AdamW(model.parameters(), lr=cfg.learning_rate, weight_decay=cfg.weight_decay)
     run_dir = Path(cfg.run_dir)
     run_dir.mkdir(parents=True, exist_ok=True)
     (run_dir / 'config.json').write_text(json.dumps({**cfg.__dict__, 'model': model_cfg.to_dict(), 'resolved_streaming': train_streaming}, indent=2), encoding='utf-8')
 
-    rows: list[dict] = []
     data_iter = iter(train_loader)
     last_loss = None
-    for step in range(1, cfg.max_steps + 1):
+    for step in range(start_step + 1, cfg.max_steps + 1):
         try:
             x, y = next(data_iter)
         except StopIteration:
@@ -135,7 +162,18 @@ def train(cfg: TrainConfig) -> dict:
         if step % cfg.eval_interval == 0 or step == cfg.max_steps:
             val_loss = evaluate(model, val_loader, device, cfg.eval_batches) if val_loader is not None else float('nan')
             rows.append({'step': step, 'train_loss': last_loss, 'val_loss': val_loss})
-            torch.save({'model': model.state_dict(), 'model_config': model_cfg.to_dict(), 'step': step}, run_dir / f'ckpt_step_{step}.pt')
+            rng = {
+                'torch': torch.get_rng_state(),
+                'cuda': [s.cpu() for s in torch.cuda.get_rng_state_all()] if torch.cuda.is_available() else None,
+                'random': random.getstate(),
+            }
+            torch.save({
+                'model': model.state_dict(),
+                'model_config': model_cfg.to_dict(),
+                'optimizer': optimizer.state_dict(),
+                'rng': rng,
+                'step': step,
+            }, run_dir / f'ckpt_step_{step}.pt')
 
     with (run_dir / 'loss.csv').open('w', newline='', encoding='utf-8') as fp:
         writer = csv.DictWriter(fp, fieldnames=['step', 'train_loss', 'val_loss'])

@@ -1,0 +1,28 @@
+{
+  "test_path": "data/processed/physcomitrium_patens_5m_1024_sequence/test",
+  "batch_size": 4,
+  "eval_batches": 200,
+  "markov_baselines": {
+    "markov_0": {"bits_per_base": 1.9250405735172231, "order": 0},
+    "markov_1": {"bits_per_base": 1.9090154216846290, "order": 1},
+    "markov_5": {"bits_per_base": 1.8861445601390048, "order": 5}
+  },
+  "dna_gpt_curve": [
+    {"step": 250000, "bits_per_base": 1.626442},
+    {"step": 750000, "bits_per_base": 1.383622},
+    {"step": 1250000, "bits_per_base": 1.342652},
+    {"step": 1750000, "bits_per_base": 1.330945},
+    {"step": 2250000, "bits_per_base": 1.312655},
+    {"step": 2750000, "bits_per_base": 1.336700},
+    {"step": 3250000, "bits_per_base": 1.337636},
+    {"step": 3750000, "bits_per_base": 1.315312},
+    {"step": 4250000, "bits_per_base": 1.329591},
+    {"step": 4750000, "bits_per_base": 1.333451},
+    {"step": 5250000, "bits_per_base": 1.326241},
+    {"step": 5750000, "bits_per_base": 1.314932},
+    {"step": 6250000, "bits_per_base": 1.321782},
+    {"step": 6750000, "bits_per_base": 1.307066},
+    {"step": 7250000, "bits_per_base": 1.305221},
+    {"step": 7750000, "bits_per_base": 1.290582}
+  ]
+}

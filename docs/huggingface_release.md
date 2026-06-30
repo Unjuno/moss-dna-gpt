@@ -1,0 +1,58 @@
+# Hugging Face release guide
+
+## Suggested model name
+
+`moss-dna-gpt-20m-patens`
+
+## Files to upload
+
+| File | Source | Description |
+|---|---|---|
+| `ckpt_step_8000000.pt` | `runs/.../ckpt_step_8000000.pt` | PyTorch checkpoint (model weights + optimizer state) |
+| `model.safetensors` | Converted from `.pt` | Safe weights-only format (recommended for inference) |
+| `config.json` | `repo/moss-dna-gpt-20m-patens/config.json` | Model hyperparameters |
+| `loss.csv` | `repo/moss-dna-gpt-20m-patens/loss.csv` | Training/validation loss log |
+| `eval_markov_step8000000.json` | `repo/moss-dna-gpt-20m-patens/eval_markov_step8000000.json` | Markov baseline comparison results |
+| `eval_curve.json` | `repo/moss-dna-gpt-20m-patens/eval_curve.json` | Evaluation curve (bits/base vs step) |
+| `learning_curve.png` | `repo/moss-dna-gpt-20m-patens/learning_curve.png` | Publication-quality learning curve figure |
+| `README.md` | `repo/moss-dna-gpt-20m-patens/README.md` | Model card (HF renders this automatically) |
+
+## Files NOT to upload
+
+- Raw FASTA files (not public data distribution)
+- Processed train/val/test shards (can be regenerated)
+- Training logs beyond the loss CSV
+- Any files containing paths or data from your local machine
+
+## Conversion to safetensors
+
+```bash
+python scripts/convert_to_safetensors.py \
+    --checkpoint runs/physcomitrium_patens_20m_1024_sequence_2weeks/ckpt_step_8000000.pt \
+    --config config.json
+```
+
+## Upload command
+
+```bash
+pip install -e ".[hf]"
+
+python scripts/publish_to_hf.py \
+    --checkpoint runs/physcomitrium_patens_20m_1024_sequence_2weeks/ckpt_step_8000000.pt \
+    --config config.json \
+    --repo-id your-username/moss-dna-gpt-20m-patens \
+    --token hf_xxxx
+```
+
+## Model card limitations section
+
+The Hugging Face model card must include the following limitations prominently:
+
+> **Research use only.** This model performs next-base prediction on DNA sequences. It is not intended for:
+> - SNP effect or variant pathogenicity prediction
+> - Gene function or phenotype prediction
+> - Environmental adaptation prediction
+> - Clinical, agricultural, or ecological decision-making
+> - Cross-species generalization (trained on moss only)
+>
+> Lower bits/base than Markov baselines is a statistical language modeling result and does not imply biological understanding.

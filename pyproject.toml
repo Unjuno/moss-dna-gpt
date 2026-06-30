@@ -10,9 +10,10 @@ dependencies = ["torch>=2.0", "PyYAML>=6.0"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
-app = ["streamlit>=1.30"]
+app = ["streamlit>=1.30", "networkx>=3.0", "pyvis>=0.3", "umap-learn>=0.5", "scikit-learn>=1.0", "scipy>=1.7"]
 hf = ["safetensors>=0.4", "huggingface_hub>=0.24"]
-all = ["pytest>=8.0", "streamlit>=1.30", "safetensors>=0.4", "huggingface_hub>=0.24"]
+plot = ["matplotlib>=3.7", "pandas>=2.0"]
+all = ["pytest>=8.0", "streamlit>=1.30", "safetensors>=0.4", "huggingface_hub>=0.24", "matplotlib>=3.7", "pandas>=2.0"]
 
 [tool.setuptools.packages.find]
 include = ["moss_dna_gpt*"]

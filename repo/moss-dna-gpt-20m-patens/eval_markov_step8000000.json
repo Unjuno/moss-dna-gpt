@@ -1,0 +1,32 @@
+{
+  "train_path": "data/processed/physcomitrium_patens_5m_1024_sequence/train",
+  "test_path": "data/processed/physcomitrium_patens_5m_1024_sequence/test",
+  "streaming": true,
+  "markov": {
+    "0": {
+      "order": 0,
+      "nats_per_base": 1.3343364459969633,
+      "bits_per_base": 1.9250405735172231,
+      "tokens": 177723392
+    },
+    "1": {
+      "order": 1,
+      "nats_per_base": 1.3232286571861556,
+      "bits_per_base": 1.909015421684629,
+      "tokens": 177723392
+    },
+    "5": {
+      "order": 5,
+      "nats_per_base": 1.3073757839888294,
+      "bits_per_base": 1.8861445601390048,
+      "tokens": 177723392
+    }
+  },
+  "dna_gpt": {
+    "checkpoint": "runs/physcomitrium_patens_20m_1024_sequence_2weeks/ckpt_step_8000000.pt",
+    "step": 8000000,
+    "nats_per_base": 0.9819498628377914,
+    "bits_per_base": 1.4166541975176796,
+    "param_count": 21691008
+  }
+}

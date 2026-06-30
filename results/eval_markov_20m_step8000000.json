@@ -1,0 +1,30 @@
+{
+  "model": "DNA-GPT 20M",
+  "checkpoint_step": 8000000,
+  "param_count": 21691008,
+  "organism": "Physcomitrium patens",
+  "assembly": "GCA_000002425.3 / Phypa_V5",
+  "split_policy": "sequence-level",
+  "test_tokens": 177723392,
+  "results": {
+    "markov_order_0": {
+      "order": 0,
+      "bits_per_base": 1.9250405735172231,
+      "nats_per_base": 1.3343364459969633
+    },
+    "markov_order_1": {
+      "order": 1,
+      "bits_per_base": 1.909015421684629,
+      "nats_per_base": 1.3232286571861556
+    },
+    "markov_order_5": {
+      "order": 5,
+      "bits_per_base": 1.8861445601390048,
+      "nats_per_base": 1.3073757839888294
+    },
+    "dna_gpt_20m": {
+      "bits_per_base": 1.4166541975176796,
+      "nats_per_base": 0.9819498628377914
+    }
+  }
+}

@@ -1,17 +1,39 @@
+# raw data
 data/
+
+# training runs (checkpoints, logs, config copies)
 runs/
+
+# checkpoint files
 *.pt
 *.pth
 *.ckpt
 *.safetensors
+
+# genomic sequence files
+*.fna
+*.fa
+*.fa.gz
+*.fna.gz
+*.fasta
+*.fasta.gz
+
+# python
 __pycache__/
 *.py[cod]
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+
+# virtual environments
 .venv/
 venv/
-.DS_Store
-Thumbs.db
+
+# packaging
+*.egg-info/
+
+# editors
 .vscode/
 .idea/
+.DS_Store
+Thumbs.db

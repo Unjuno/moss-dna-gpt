@@ -1,0 +1,24 @@
+train_path: data/processed/physcomitrium_patens_5m_1024_sequence/train
+val_path: data/processed/physcomitrium_patens_5m_1024_sequence/val
+run_dir: runs/physcomitrium_patens_20m_1024_sequence_2weeks
+seed: 42
+device: auto
+batch_size: 2
+learning_rate: 0.0003
+weight_decay: 0.1
+max_steps: 8000000
+eval_interval: 250000
+eval_batches: 50
+log_interval: 1000
+num_workers: 0
+num_threads: 1
+grad_clip: 1.0
+streaming: true
+model:
+  vocab_size: 9
+  block_size: 1024
+  n_layer: 12
+  n_head: 8
+  n_embd: 384
+  dropout: 0.1
+  bias: true

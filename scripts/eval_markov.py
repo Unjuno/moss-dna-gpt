@@ -14,7 +14,14 @@ from torch.utils.data import DataLoader
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from moss_dna_gpt.dataset import DnaWindowDataset, StreamingDnaWindowDataset, resolve_window_files
-from moss_dna_gpt.markov import MarkovModel, InterpolatedMarkovModel, evaluate_markov_orders, shuffle_sequence
+from moss_dna_gpt.markov import (
+    MarkovModel,
+    InterpolatedMarkovModel,
+    evaluate_markov_orders,
+    filter_low_complexity,
+    low_complexity_fraction,
+    shuffle_sequence,
+)
 from moss_dna_gpt.trainer import evaluate, load_checkpoint, resolve_device
 from moss_dna_gpt.metrics import nats_to_bits
 from moss_dna_gpt.tokenizer import DnaTokenizer
@@ -29,36 +36,85 @@ def iter_window_strings(path: str | Path):
                     yield seq
 
 
-def evaluate_markov_streaming(train_path: str | Path, test_path: str | Path,
-                               orders: list[int], alpha: float,
-                               include_imm: bool = False,
-                               include_shuffled: bool = False) -> dict:
-    train_seqs = list(iter_window_strings(train_path))
-    test_seqs = list(iter_window_strings(test_path))
-    return evaluate_markov_orders(
+def evaluate_markov_baselines(
+    train_seqs: list[str],
+    test_seqs: list[str],
+    orders: list[int],
+    alpha: float,
+    include_imm: bool = False,
+    include_shuffled: bool = False,
+    lc_threshold: float | None = None,
+    bootstrap_n: int = 0,
+) -> dict:
+    """Run Markov baselines and optional bootstrap CI."""
+    result = {}
+
+    if lc_threshold is not None and lc_threshold < 1.0:
+        lc_frac = low_complexity_fraction
+        train_filtered = filter_low_complexity(train_seqs, lc_threshold)
+        test_filtered = filter_low_complexity(test_seqs, lc_threshold)
+        orig_test = len(test_seqs)
+        result['lc_filter'] = {
+            'threshold': lc_threshold,
+            'train_seqs_before': len(train_seqs),
+            'train_seqs_after': len(train_filtered),
+            'test_seqs_before': len(test_seqs),
+            'test_seqs_after': len(test_filtered),
+            'test_frac_removed': 1.0 - len(test_filtered) / max(orig_test, 1),
+        }
+        train_seqs = train_filtered
+        test_seqs = test_filtered
+
+    markov_results = evaluate_markov_orders(
         train_seqs, test_seqs, orders=orders, alpha=alpha,
         include_imm=include_imm, include_shuffled=include_shuffled,
     )
 
+    if bootstrap_n > 1:
+        rng = random.Random(42)
+        n_test = len(test_seqs)
+        for key, m_result in markov_results.items():
+            if key == 'imm':
+                imm = InterpolatedMarkovModel(max(orders), alpha).fit(train_seqs)
+                estimates = _bootstrap_ce(imm, test_seqs, n_resamples=bootstrap_n, rng=rng)
+                markov_results[key]['bootstrap_ci'] = _format_ci(estimates, bootstrap_n)
+            elif 'shuffled' in key:
+                k = 2 if 'k2' in key else 3
+                shuffled_train = [shuffle_sequence(s, k=k) for s in train_seqs]
+                m = MarkovModel(max(orders), alpha).fit(shuffled_train)
+                estimates = _bootstrap_ce(m, test_seqs, n_resamples=bootstrap_n, rng=rng)
+                markov_results[key]['bootstrap_ci'] = _format_ci(estimates, bootstrap_n)
+            else:
+                order = m_result.get('order', 0)
+                if isinstance(order, int):
+                    m = MarkovModel(order, alpha).fit(train_seqs)
+                    estimates = _bootstrap_ce(m, test_seqs, n_resamples=bootstrap_n, rng=rng)
+                    markov_results[key]['bootstrap_ci'] = _format_ci(estimates, bootstrap_n)
 
-def bootstrap_ci(seqs: list[str], model_fn, metric_fn, n_resamples: int = 1000,
-                 alpha: float = 0.05, seed: int = 42) -> dict:
-    """Bootstrap confidence interval for a model's cross-entropy."""
-    rng = random.Random(seed)
-    n = len(seqs)
+    result['markov'] = markov_results
+    return result
+
+
+def _bootstrap_ce(model, test_seqs, n_resamples, rng):
+    n = len(test_seqs)
     estimates = []
     for _ in range(n_resamples):
-        sample = [seqs[rng.randint(0, n - 1)] for _ in range(n)]
-        loss, tokens = metric_fn(sample, model_fn)
+        sample = [test_seqs[rng.randint(0, n - 1)] for _ in range(n)]
+        loss, _tokens = model.cross_entropy(sample)
         estimates.append(loss)
+    return estimates
+
+
+def _format_ci(estimates, n_resamples):
     estimates.sort()
-    ci = {
+    mean = sum(estimates) / len(estimates)
+    std = math.sqrt(sum((x - mean) ** 2 for x in estimates) / len(estimates))
+    return {
         'n_resamples': n_resamples,
-        'mean': sum(estimates) / len(estimates),
-        'std': math.sqrt(sum((x - sum(estimates) / len(estimates)) ** 2 for x in estimates) / len(estimates)),
-        f'ci_{int(100*(1-alpha))}': [estimates[int(n_resamples * alpha / 2)], estimates[int(n_resamples * (1 - alpha / 2))]],
+        'mean': mean,
+        'std': std,
+        'ci_95': [estimates[int(n_resamples * 0.025)], estimates[int(n_resamples * 0.975)]],
     }
-    return ci
 
 
 def main() -> None:
@@ -69,6 +125,8 @@ def main() -> None:
     parser.add_argument('--alpha', type=float, default=0.5)
     parser.add_argument('--imm', action='store_true', help='Include interpolated Markov model (IMM) baseline')
     parser.add_argument('--shuffled', action='store_true', help='Include dinucleotide/k3-shuffled controls')
+    parser.add_argument('--filter-lc', type=float, default=None, metavar='THRESH',
+                        help='Filter out low-complexity windows (default: 0.3, set to 0 to skip)')
     parser.add_argument('--checkpoint')
     parser.add_argument('--batch-size', type=int, default=4)
     parser.add_argument('--eval-batches', type=int, default=100)
@@ -92,34 +150,20 @@ def main() -> None:
             'alpha': args.alpha,
             'imm': args.imm,
             'shuffled': args.shuffled,
+            'filter_lc': args.filter_lc,
             'bootstrap': args.bootstrap,
         },
-        'markov': {},
     }
 
-    if not is_streaming:
-        result['markov'] = evaluate_markov_streaming(
-            args.train_path, args.test_path, orders=orders, alpha=args.alpha,
-            include_imm=args.imm, include_shuffled=args.shuffled,
-        )
-
-        if args.bootstrap > 1:
-            test_seqs = list(iter_window_strings(args.test_path))
-            for key, m_result in result['markov'].items():
-                order = m_result.get('order', 0)
-                if isinstance(order, int):
-                    model = MarkovModel(order, args.alpha).fit(iter_window_strings(args.train_path))
-                    metric_fn = lambda seqs, m: m.cross_entropy(seqs)
-                    ci = bootstrap_ci(test_seqs, model, lambda seqs, m: m.cross_entropy(seqs),
-                                      n_resamples=args.bootstrap, seed=42)
-                    result['markov'][key]['bootstrap_ci'] = ci
-    else:
-        train_seqs = list(iter_window_strings(args.train_path))
-        test_seqs = list(iter_window_strings(args.test_path))
-        result['markov'] = evaluate_markov_orders(
-            train_seqs, test_seqs, orders=orders, alpha=args.alpha,
-            include_imm=args.imm, include_shuffled=args.shuffled,
-        )
+    train_seqs = list(iter_window_strings(args.train_path))
+    test_seqs = list(iter_window_strings(args.test_path))
+    baselines = evaluate_markov_baselines(
+        train_seqs, test_seqs, orders=orders, alpha=args.alpha,
+        include_imm=args.imm, include_shuffled=args.shuffled,
+        lc_threshold=args.filter_lc,
+        bootstrap_n=args.bootstrap,
+    )
+    result.update(baselines)
 
     if args.checkpoint:
         device = resolve_device(args.device)

@@ -97,6 +97,28 @@ def shuffle_sequence(seq: str, k: int = 2) -> str:
     return ''.join(kmers) + tail
 
 
+def low_complexity_fraction(seq: str, window: int = 80, stride: int = 20) -> float:
+    """Fraction of sliding windows with entropy < 1.0 (low-complexity)."""
+    if len(seq) < window:
+        window = max(len(seq), 8)
+        stride = window
+    low = 0
+    n = 0
+    for start in range(0, len(seq) - window + 1, stride):
+        w = seq[start:start + window]
+        counts = Counter(w)
+        ent = -sum((c / window) * math.log2(c / window) for c in counts.values())
+        if ent < 1.0:
+            low += 1
+        n += 1
+    return low / max(n, 1)
+
+
+def filter_low_complexity(seqs: list[str], threshold: float = 0.3) -> list[str]:
+    """Keep only sequences with low-complexity fraction below threshold."""
+    return [s for s in seqs if low_complexity_fraction(s) < threshold]
+
+
 def evaluate_markov_orders(train, test, orders=(0, 1, 5), alpha=0.5,
                            include_imm: bool = False, include_shuffled: bool = False):
     out = {}

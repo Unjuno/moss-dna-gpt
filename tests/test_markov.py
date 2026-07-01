@@ -51,3 +51,25 @@ def test_interpolated_markov_imm_runs():
     loss, n = imm.cross_entropy(test)
     assert loss > 0
     assert n > 0
+
+
+def test_low_complexity_fraction_high_entropy():
+    from moss_dna_gpt.markov import low_complexity_fraction
+    seq = 'ACGTACGTACGTACGTACGTACGTACGTACGT'
+    lcf = low_complexity_fraction(seq, window=8, stride=8)
+    assert 0 <= lcf <= 0.1
+
+
+def test_low_complexity_fraction_low_entropy():
+    from moss_dna_gpt.markov import low_complexity_fraction
+    seq = 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA'
+    lcf = low_complexity_fraction(seq, window=8, stride=8)
+    assert lcf > 0.9
+
+
+def test_filter_low_complexity():
+    from moss_dna_gpt.markov import filter_low_complexity
+    seqs = ['ACGTACGTACGTACGTACGTACGTACGTACGT', 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA']
+    filtered = filter_low_complexity(seqs, threshold=0.5)
+    assert len(filtered) == 1
+    assert filtered[0] == seqs[0]

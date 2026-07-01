@@ -322,7 +322,7 @@ def render_evaluate_tab(checkpoint, device, fasta_path):
                 gen_seqs.append(tokenizer.decode(out[0].tolist(), skip_special=True))
 
         with st.spinner('Computing metrics...'):
-            result = evaluate_biological_quality(real_seqs, gen_seqs, model, tokenizer, device)
+            result = evaluate_biological_quality(real_seqs, gen_seqs, model, tokenizer, selected)
 
         # GC distribution comparison
         st.markdown('### GC Content')
@@ -387,7 +387,7 @@ def render_graph_tab(checkpoint, device, fasta_path):
                 windows = sample_windows_from_fasta(fa_path, num_windows=n_windows, window_size=256)
             with st.spinner('Extracting embeddings...'):
                 model, ckpt_data, tokenizer, selected = load_model(checkpoint, device)
-                embs = extract_embeddings(model, windows, tokenizer, device)
+                embs = extract_embeddings(model, windows, tokenizer, selected)
             with st.spinner('Building similarity graph...'):
                 metadata = [{'gc': round(gc_content(s), 3)} for s in windows]
                 G = build_similarity_graph(embs, windows, metadata=metadata, threshold=threshold)
@@ -428,7 +428,7 @@ def render_graph_tab(checkpoint, device, fasta_path):
                 windows = sample_windows_from_fasta(fa_path, num_windows=n_windows, window_size=256)
             with st.spinner('Extracting embeddings...'):
                 model, ckpt_data, tokenizer, selected = load_model(checkpoint, device)
-                embs = extract_embeddings(model, windows, tokenizer, device)
+                embs = extract_embeddings(model, windows, tokenizer, selected)
             with st.spinner('Computing UMAP projection...'):
                 embedding_2d = compute_umap(embs, n_neighbors=n_neighbors)
 

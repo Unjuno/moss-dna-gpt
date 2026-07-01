@@ -60,6 +60,17 @@ python scripts/publish_to_hf.py \
     --dry-run
 ```
 
+## Verify published files
+
+```bash
+pip install -e ".[hf]"
+
+hf download Unjuno/moss-dna-gpt-20m-patens \
+    model.safetensors config.json metadata.json README.md \
+    --local-dir hf_check
+ls -lh hf_check/
+```
+
 ## Model card limitations section
 
 The Hugging Face model card must include the following limitations prominently:

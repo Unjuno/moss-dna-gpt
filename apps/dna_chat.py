@@ -93,6 +93,7 @@ def build_curve_df():
 def parse_cli_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument('--checkpoint', default=DEFAULT_CHECKPOINT)
+    parser.add_argument('--config', default=None, help='Path to config.json (required for .safetensors checkpoints)')
     parser.add_argument('--device', default='auto')
     parser.add_argument('--fasta', default=REAL_FASTA)
     args, _ = parser.parse_known_args()
@@ -128,16 +129,29 @@ def render_base_chart(stats: dict) -> None:
 
 
 @st.cache_resource(show_spinner='Loading checkpoint...')
-def load_model(checkpoint_path: str, device: str):
+def load_model(checkpoint_path: str, device: str, config_path: str | None = None):
     selected = resolve_device(device)
+    tokenizer = DnaTokenizer()
+    if checkpoint_path.endswith('.safetensors'):
+        config_file = Path(config_path) if config_path else Path(checkpoint_path).parent / 'config.json'
+        with open(config_file) as f:
+            cfg = json.load(f)
+        config = GPTConfig(**{k: cfg[k] for k in ['vocab_size', 'block_size', 'n_layer', 'n_head', 'n_embd', 'dropout', 'bias'] if k in cfg})
+        model = GPT(config)
+        from safetensors.torch import load_file
+        state_dict = load_file(checkpoint_path)
+        model.load_state_dict(state_dict)
+        model.to(selected)
+        model.eval()
+        meta = {'step': None, 'model_config': cfg}
+        return model, meta, tokenizer, selected
     model, checkpoint = load_checkpoint(checkpoint_path, map_location=selected)
     model.to(selected)
-    tokenizer = DnaTokenizer()
     return model, checkpoint, tokenizer, selected
 
 
-def generate_continuation(checkpoint_path, prefix, max_new_tokens, temperature, top_k, device):
-    model, checkpoint, tokenizer, selected = load_model(checkpoint_path, device)
+def generate_continuation(checkpoint_path, prefix, max_new_tokens, temperature, top_k, device, config_path=None):
+    model, checkpoint, tokenizer, selected = load_model(checkpoint_path, device, config_path)
     cleaned = clean_dna(prefix)
     if not cleaned:
         raise ValueError('Prefix must contain at least one A/C/G/T/N base.')
@@ -150,8 +164,8 @@ def generate_continuation(checkpoint_path, prefix, max_new_tokens, temperature, 
     return full, base_stats(full), selected, checkpoint.get('step'), model.num_parameters()
 
 
-def generate_sliding_window(checkpoint_path, prefix, total_tokens, chunk_size, temperature, top_k, device, progress_callback=None, text_callback=None):
-    model, checkpoint, tokenizer, selected = load_model(checkpoint_path, device)
+def generate_sliding_window(checkpoint_path, prefix, total_tokens, chunk_size, temperature, top_k, device, config_path=None, progress_callback=None, text_callback=None):
+    model, checkpoint, tokenizer, selected = load_model(checkpoint_path, device, config_path)
     cleaned = clean_dna(prefix)
     if not cleaned:
         raise ValueError('Prefix must contain at least one A/C/G/T/N base.')
@@ -203,7 +217,7 @@ def render_learning_curve():
             st.info('Run `python scripts/eval_all_checkpoints.py` to generate eval data.')
 
 
-def render_generate_tab(checkpoint, device, temperature, top_k, sliding, total_tokens, chunk_size, max_new_tokens, cli):
+def render_generate_tab(checkpoint, device, temperature, top_k, sliding, total_tokens, chunk_size, max_new_tokens, cli, config_path):
     if 'history' not in st.session_state:
         st.session_state.history = []
     use_case = st.selectbox('Use case', list(GEN_PRESETS.keys()), index=0, key='gen_usecase')
@@ -225,9 +239,9 @@ def render_generate_tab(checkpoint, device, temperature, top_k, sliding, total_t
             progress_bar = st.progress(0.0, text='Generating...')
             if sliding:
                 output_placeholder = st.empty()
-                full, stats, selected_device, step, param_count = generate_sliding_window(checkpoint, used_prefix, total_tokens=total_tokens, chunk_size=chunk_size, temperature=temperature, top_k=top_k, device=device, progress_callback=lambda v: progress_bar.progress(v, text=f'Generating... {v*100:.0f}%'), text_callback=lambda t: output_placeholder.markdown(f'<div style="font-family: monospace; white-space: pre-wrap; word-break: break-word; height: 400px; overflow-y: auto; background: #f0f0f0; padding: 10px; border-radius: 4px;">{t}</div>', unsafe_allow_html=True))
+                full, stats, selected_device, step, param_count = generate_sliding_window(checkpoint, used_prefix, total_tokens=total_tokens, chunk_size=chunk_size, temperature=temperature, top_k=top_k, device=device, config_path=config_path, progress_callback=lambda v: progress_bar.progress(v, text=f'Generating... {v*100:.0f}%'), text_callback=lambda t: output_placeholder.markdown(f'<div style="font-family: monospace; white-space: pre-wrap; word-break: break-word; height: 400px; overflow-y: auto; background: #f0f0f0; padding: 10px; border-radius: 4px;">{t}</div>', unsafe_allow_html=True))
             else:
-                full, stats, selected_device, step, param_count = generate_continuation(checkpoint, used_prefix, max_new_tokens=max_new_tokens, temperature=temperature, top_k=top_k, device=device)
+                full, stats, selected_device, step, param_count = generate_continuation(checkpoint, used_prefix, max_new_tokens=max_new_tokens, temperature=temperature, top_k=top_k, device=device, config_path=config_path)
             progress_bar.empty()
             if sliding:
                 output_placeholder.empty()
@@ -243,7 +257,7 @@ def render_generate_tab(checkpoint, device, temperature, top_k, sliding, total_t
             render_base_chart(item['stats'])
 
 
-def render_variant_tab(checkpoint, device):
+def render_variant_tab(checkpoint, device, config_path=None):
     st.subheader('Variant Effect Scoring')
     st.caption('Measure how surprising a single-nucleotide variant is to the DNA language model.')
     score_case = st.selectbox('Use case', list(SCORE_PRESETS.keys()), index=0, key='score_usecase')
@@ -265,7 +279,7 @@ def render_variant_tab(checkpoint, device):
                 raise ValueError('Sequence must contain at least one A/C/G/T/N base.')
             if pos >= len(cleaned):
                 raise ValueError(f'Position {pos} out of range for sequence of length {len(cleaned)}.')
-            model, ckpt_data, tokenizer, selected = load_model(checkpoint, device)
+            model, ckpt_data, tokenizer, selected = load_model(checkpoint, device, config_path)
             result = score_variant(model, tokenizer, cleaned, pos, alt, device=selected)
             st.success('Score computed')
             c1, c2, c3, c4 = st.columns(4)
@@ -291,7 +305,7 @@ def render_variant_tab(checkpoint, device):
             st.error(str(exc))
 
 
-def render_evaluate_tab(checkpoint, device, fasta_path):
+def render_evaluate_tab(checkpoint, device, fasta_path, config_path=None):
     st.subheader('Biological Quality Evaluation')
     st.caption('Compare real moss genome statistics against model-generated sequences.')
 
@@ -311,7 +325,7 @@ def render_evaluate_tab(checkpoint, device, fasta_path):
             real_seqs = sample_windows_from_fasta(fa_path, num_windows=n_real, window_size=256)
 
         with st.spinner('Generating sequences from model...'):
-            model, ckpt_data, tokenizer, selected = load_model(checkpoint, device)
+            model, ckpt_data, tokenizer, selected = load_model(checkpoint, device, config_path)
             gen_seqs = []
             for _ in range(n_gen):
                 prefix_ids = tokenizer.encode('ACGT', unknown='n')
@@ -368,7 +382,7 @@ def render_evaluate_tab(checkpoint, device, fasta_path):
             st.caption('UV dimers (TT/TC/CT/CC) are pyrimidine dimer hotspots. Higher loss = model finds these sites more surprising.')
 
 
-def render_graph_tab(checkpoint, device, fasta_path):
+def render_graph_tab(checkpoint, device, fasta_path, config_path=None):
     st.subheader('Genome Graph Explorer')
     st.caption('Visualize how the model understands moss genome structure using graph theory.')
 
@@ -386,7 +400,7 @@ def render_graph_tab(checkpoint, device, fasta_path):
             with st.spinner('Sampling genome windows...'):
                 windows = sample_windows_from_fasta(fa_path, num_windows=n_windows, window_size=256)
             with st.spinner('Extracting embeddings...'):
-                model, ckpt_data, tokenizer, selected = load_model(checkpoint, device)
+                model, ckpt_data, tokenizer, selected = load_model(checkpoint, device, config_path)
                 embs = extract_embeddings(model, windows, tokenizer, selected)
             with st.spinner('Building similarity graph...'):
                 metadata = [{'gc': round(gc_content(s), 3)} for s in windows]
@@ -427,7 +441,7 @@ def render_graph_tab(checkpoint, device, fasta_path):
             with st.spinner('Sampling genome windows...'):
                 windows = sample_windows_from_fasta(fa_path, num_windows=n_windows, window_size=256)
             with st.spinner('Extracting embeddings...'):
-                model, ckpt_data, tokenizer, selected = load_model(checkpoint, device)
+                model, ckpt_data, tokenizer, selected = load_model(checkpoint, device, config_path)
                 embs = extract_embeddings(model, windows, tokenizer, selected)
             with st.spinner('Computing UMAP projection...'):
                 embedding_2d = compute_umap(embs, n_neighbors=n_neighbors)
@@ -447,7 +461,7 @@ def render_graph_tab(checkpoint, device, fasta_path):
         k_size = st.selectbox('k-mer size', [3, 4, 5, 6], index=1)
         sample_seq = st.text_area('DNA sequence (or leave blank to auto-generate)', value='', height=80, help='Enter a DNA sequence or leave blank to generate one from the model.')
         if st.button('Generate & Compare', type='primary', key='db_run'):
-            model, ckpt_data, tokenizer, selected = load_model(checkpoint, device)
+            model, ckpt_data, tokenizer, selected = load_model(checkpoint, device, config_path)
             if sample_seq.strip():
                 real_seq = clean_dna(sample_seq)
             else:
@@ -504,6 +518,9 @@ def main() -> None:
     with st.sidebar:
         st.header('Checkpoint')
         checkpoint = st.text_input('Checkpoint path', value=cli.checkpoint, key='checkpoint_path_input')
+        config_path = cli.config
+        if checkpoint.endswith('.safetensors'):
+            config_path = st.text_input('Config path', value=cli.config or str(Path(checkpoint).parent / 'config.json'), key='config_path_input')
         device_options = ['auto', 'cpu', 'cuda']
         default_device_index = device_options.index(cli.device) if cli.device in device_options else 0
         device = st.selectbox('Device', device_options, index=default_device_index)
@@ -524,15 +541,16 @@ def main() -> None:
         st.caption('The model only predicts next DNA bases. Do not interpret output as SNP effect, gene function, or adaptation prediction.')
 
     render_learning_curve()
+    config_path = st.session_state.get('config_path_input', cli.config)
 
     with tab_gen:
-        render_generate_tab(checkpoint, device, temperature, top_k, sliding, total_tokens, chunk_size, max_new_tokens, cli)
+        render_generate_tab(checkpoint, device, temperature, top_k, sliding, total_tokens, chunk_size, max_new_tokens, cli, config_path)
     with tab_score:
-        render_variant_tab(checkpoint, device)
+        render_variant_tab(checkpoint, device, config_path)
     with tab_eval:
-        render_evaluate_tab(checkpoint, device, cli.fasta)
+        render_evaluate_tab(checkpoint, device, cli.fasta, config_path)
     with tab_graph:
-        render_graph_tab(checkpoint, device, cli.fasta)
+        render_graph_tab(checkpoint, device, cli.fasta, config_path)
 
 
 if __name__ == '__main__':

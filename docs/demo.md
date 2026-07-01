@@ -20,7 +20,7 @@ streamlit run apps/dna_chat.py -- \
     --device cpu
 ```
 
-**Demo with the trained 20M checkpoint:**
+**Demo with the trained 20M checkpoint (.pt format):**
 
 ```bash
 streamlit run apps/dna_chat.py -- \
@@ -28,9 +28,18 @@ streamlit run apps/dna_chat.py -- \
     --device auto
 ```
 
+**Demo with the Hugging Face safetensors release:**
+
+```bash
+streamlit run apps/dna_chat.py -- \
+    --checkpoint repo/moss-dna-gpt-20m-patens/model.safetensors \
+    --config repo/moss-dna-gpt-20m-patens/config.json \
+    --device auto
+```
+
 ## Required checkpoint path
 
-The `--checkpoint` argument points to a local `.pt` file from a completed training run. The checkpoint is **not stored in Git**; you must either:
+The `--checkpoint` argument points to a local checkpoint file — either a `.pt` training checkpoint or a `.safetensors` inference checkpoint. Checkpoints are **not stored in Git**; you must either:
 
 - Train a model yourself with `scripts/train.py`
 - Download a pre-trained checkpoint from Hugging Face (see `docs/huggingface_release.md`)
@@ -64,4 +73,4 @@ The sidebar shows:
 
 ## Safety
 
-Only load checkpoints from trusted sources. PyTorch `.pt` files may execute unsafe pickle payloads on older PyTorch versions.
+Only load checkpoints from trusted sources. PyTorch `.pt` files may execute unsafe pickle payloads on older PyTorch versions. Prefer `.safetensors` format (used for the Hugging Face release) as it is pickle-free and safer for inference.

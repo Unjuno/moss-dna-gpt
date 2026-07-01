@@ -1,6 +1,19 @@
 from __future__ import annotations
 
+import gzip
+from pathlib import Path
+
 from streamlit.testing.v1 import AppTest
+
+_REAL_FASTA = Path('data/raw/physcomitrium_patens_manual/GCA_000002425.3_Phypa_V5_genomic.fna.gz')
+
+
+def _ensure_dummy_fasta():
+    if _REAL_FASTA.exists():
+        return
+    _REAL_FASTA.parent.mkdir(parents=True, exist_ok=True)
+    with gzip.open(_REAL_FASTA, 'wt', encoding='utf-8') as f:
+        f.write('>dummy\nACGTACGTACGTACGTACGTACGTACGTACGT\n')
 
 
 def _find_button(at, label: str):
@@ -74,6 +87,7 @@ class TestScoreTab:
 
 class TestEvaluateTab:
     def test_evaluate_button_exists(self):
+        _ensure_dummy_fasta()
         at = AppTest.from_file("apps/dna_chat.py")
         at.run(timeout=30)
         assert _find_button(at, "Run evaluation") is not None
@@ -81,11 +95,13 @@ class TestEvaluateTab:
 
 class TestGraphTab:
     def test_graph_buttons_exist(self):
+        _ensure_dummy_fasta()
         at = AppTest.from_file("apps/dna_chat.py")
         at.run(timeout=30)
         assert _find_button(at, "Build graph") is not None
 
     def test_umap_button_exists(self):
+        _ensure_dummy_fasta()
         at = AppTest.from_file("apps/dna_chat.py")
         at.run(timeout=30)
         # UMAP button is in a different viz mode, may not be shown initially

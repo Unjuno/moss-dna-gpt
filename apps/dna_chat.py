@@ -521,7 +521,7 @@ def main() -> None:
         config_path = cli.config
         if checkpoint.endswith('.safetensors'):
             config_path = st.text_input('Config path', value=cli.config or str(Path(checkpoint).parent / 'config.json'), key='config_path_input')
-        device_options = ['auto', 'cpu', 'cuda']
+        device_options = ['auto', 'cpu', 'cuda', 'mps']
         default_device_index = device_options.index(cli.device) if cli.device in device_options else 0
         device = st.selectbox('Device', device_options, index=default_device_index)
         st.header('Sampling')

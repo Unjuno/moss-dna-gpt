@@ -20,6 +20,9 @@ datasets:
 
 # moss-dna-gpt-20m-patens
 
+> **This is a custom PyTorch model, not a Hugging Face Transformers `AutoModel`-compatible checkpoint.**  
+> Loading it requires the `moss_dna_gpt` package from [github.com/Unjuno/moss-dna-gpt](https://github.com/Unjuno/moss-dna-gpt).
+
 Experimental 20M-parameter decoder-only Transformer trained for DNA next-base prediction on *Physcomitrium patens* (moss) genomic sequence.
 
 **Key result:** The model achieves **1.41665 bits/base** on a held-out sequence-level test split, outperforming the 5th-order Markov baseline at **1.88614 bits/base** (~25% improvement).
@@ -52,12 +55,17 @@ Experimental 20M-parameter decoder-only Transformer trained for DNA next-base pr
 
 ## Quickstart
 
+```bash
+# Clone and install the package
+git clone https://github.com/Unjuno/moss-dna-gpt.git
+cd moss-dna-gpt
+pip install -e ".[hf]"
+```
+
 ```python
 import torch
 from safetensors.torch import load_file
 
-# Load the model from this repository
-# (requires the moss_dna_gpt package from github.com/Unjuno/moss-dna-gpt)
 from moss_dna_gpt.model import GPT, GPTConfig
 from moss_dna_gpt.tokenizer import DnaTokenizer
 from moss_dna_gpt.sampling import sample
@@ -107,6 +115,7 @@ The learning curve shows DNA-GPT surpassing all Markov baselines within the firs
 
 | File | Description |
 |---|---|
+| `README.md` | Model card (this file) |
 | `model.safetensors` | Model weights in safetensors format |
 | `config.json` | Model configuration |
 | `metadata.json` | Training metadata |

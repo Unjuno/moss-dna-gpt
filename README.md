@@ -217,6 +217,12 @@ DNA language models and genomic foundation models:
 
 Only load checkpoints from trusted sources. PyTorch `.pt` files may execute unsafe pickle payloads on older versions.
 
+## Hugging Face model
+
+The released 20M checkpoint is available on the Hugging Face Hub:
+
+[https://huggingface.co/Unjuno/moss-dna-gpt-20m-patens](https://huggingface.co/Unjuno/moss-dna-gpt-20m-patens)
+
 ## Limitations
 
 See the full [limitations document](docs/limitations.md). Key points:

@@ -147,9 +147,15 @@ python scripts/eval_markov.py \
 
 ```bash
 pip install -e ".[app]"
+# With the Hugging Face safetensors release (recommended):
 streamlit run apps/dna_chat.py -- \
-    --checkpoint repo/moss-dna-gpt-20m-patens/ckpt_step_8000000.pt \
+    --checkpoint repo/moss-dna-gpt-20m-patens/model.safetensors \
+    --config repo/moss-dna-gpt-20m-patens/config.json \
     --device auto
+# Or with a local .pt training checkpoint:
+# streamlit run apps/dna_chat.py -- \
+#     --checkpoint runs/physcomitrium_patens_quick_256/ckpt_step_50.pt \
+#     --device cpu
 ```
 
 See [`docs/demo.md`](docs/demo.md) for detailed usage, example prefixes, and biological limitations.
@@ -179,9 +185,12 @@ python scripts/plot_learning_curve.py \
 
 ## Hugging Face model
 
-A Hugging Face model card is maintained at `repo/moss-dna-gpt-20m-patens/README.md`.
+The released 20M checkpoint is available on the Hugging Face Hub:
 
-**Model weights, config, evaluation results, and loss curves are published to Hugging Face** — they are not stored in this Git repository. See [`docs/huggingface_release.md`](docs/huggingface_release.md) for upload instructions.
+[https://huggingface.co/Unjuno/moss-dna-gpt-20m-patens](https://huggingface.co/Unjuno/moss-dna-gpt-20m-patens)
+
+The model card is maintained at [`repo/moss-dna-gpt-20m-patens/README.md`](repo/moss-dna-gpt-20m-patens/README.md).  
+Model weights, config, evaluation results, and loss curves are published to Hugging Face — they are not stored in this Git repository.
 
 ## Data and checkpoint NOT in Git
 
@@ -193,6 +202,19 @@ The following are **not stored in this repository**:
 - Any `.pt`, `.pth`, `.ckpt`, or `.safetensors` files
 
 These are either generated locally by the user or downloaded from Hugging Face.
+
+## Limitations
+
+See the full [limitations document](docs/limitations.md). Key points:
+
+- **Next-base prediction only** — not SNP effect, gene function, or phenotype prediction.
+- **Single species** — trained only on *Physcomitrium patens*.
+- **Small scale** — 21.7M parameters vs 40B+ in modern genomic foundation models.
+- **Statistical result** — lower bits/base than Markov baselines does not prove biological understanding.
+
+## Safety
+
+Only load checkpoints from trusted sources. PyTorch `.pt` files may execute unsafe pickle payloads on older versions. Prefer `.safetensors` format (Hugging Face release) for inference.
 
 ## Related work
 
@@ -213,21 +235,13 @@ DNA language models and genomic foundation models:
 | **Omni-DNA** | 2025 | GPT decoder | Multi-task, 20M-1B params |
 | **Carbon** | 2026 | Llama decoder | 3B/8B params, eukaryotic-focused |
 
-## Safety
+## Citation
 
-Only load checkpoints from trusted sources. PyTorch `.pt` files may execute unsafe pickle payloads on older versions.
-
-## Hugging Face model
-
-The released 20M checkpoint is available on the Hugging Face Hub:
-
-[https://huggingface.co/Unjuno/moss-dna-gpt-20m-patens](https://huggingface.co/Unjuno/moss-dna-gpt-20m-patens)
-
-## Limitations
-
-See the full [limitations document](docs/limitations.md). Key points:
-
-- **Next-base prediction only** — not SNP effect, gene function, or phenotype prediction.
-- **Single species** — trained only on *Physcomitrium patens*.
-- **Small scale** — 21.7M parameters vs 40B+ in modern genomic foundation models.
-- **Statistical result** — lower bits/base than Markov baselines does not prove biological understanding.
+```bibtex
+@software{moss_dna_gpt_2026,
+  author = {Unjuno},
+  title = {moss-dna-gpt: Minimal DNA Language Model for Moss Genome},
+  year = {2026},
+  url = {https://github.com/Unjuno/moss-dna-gpt}
+}
+```

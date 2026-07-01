@@ -53,6 +53,9 @@ Experimental 20M-parameter decoder-only Transformer trained for DNA next-base pr
 - Clinical, agricultural, or ecological decision-making
 - Cross-species generalization (trained on moss only)
 
+> **This repository does not provide a Hugging Face Transformers pipeline.**  
+> Use the custom PyTorch loading code below.
+
 ## Quickstart
 
 ```bash
@@ -105,7 +108,7 @@ Evaluation on held-out sequence-level test windows:
 | Markov order 5 | 1.88614 | 1.30738 |
 | **DNA-GPT 20M (step 8M)** | **1.41665** | **0.98195** |
 
-> **Note on evaluation settings.** The final step-8M evaluation used a different number of evaluation batches than the intermediate curve points. The learning curve shows an intermediate value of 1.29058 bits/base at step 7,750,000 (eval_batches=200), while the canonical final evaluation at step 8,000,000 (eval_batches=50) yields 1.41665 bits/base. Both reflect the same held-out test split but differ in evaluation batch count, which affects the precision of the loss estimate.
+> **Note on evaluation settings.** The final step-8M evaluation used a different number of evaluation batches (`eval_batches=50`) than the intermediate curve points (`eval_batches=200`). The learning-curve points and the final release metric were produced under different evaluation settings and are **not directly interchangeable**. The canonical release claim is **1.41665 bits/base** from `results/eval_markov_20m_step8000000.json`.
 
 The learning curve shows DNA-GPT surpassing all Markov baselines within the first 750K steps:
 
@@ -127,11 +130,11 @@ The learning curve shows DNA-GPT surpassing all Markov baselines within the firs
 
 - **Organism:** *Physcomitrium patens* ecotype Gransden 2004
 - **Assembly:** GCA_000002425.3 / Phypa_V5
-- **Source:** NCBI GenBank genomic FASTA
+- **Source:** NCBI GenBank genomic FASTA (not redistributed; obtain from NCBI and regenerate windows locally)
 - **Window size:** 1,024
 - **Stride:** 512
 - **Split:** Sequence-level split (train/val/test)
-- Raw FASTA and processed shards are not distributed.
+- Raw FASTA and processed shards are not distributed in this repository.
 
 ## Citation
 

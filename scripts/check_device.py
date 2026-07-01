@@ -3,13 +3,18 @@ from __future__ import annotations
 
 import json
 import torch
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from moss_dna_gpt.trainer import resolve_device
 
 
 def main() -> None:
     info = {
         'torch_version': torch.__version__,
         'cuda_available': torch.cuda.is_available(),
-        'selected_device_for_auto': 'cuda' if torch.cuda.is_available() else 'cpu',
+        'mps_available': torch.backends.mps.is_available(),
+        'selected_device_for_auto': resolve_device('auto'),
         'cuda_version': torch.version.cuda,
         'device_count': torch.cuda.device_count(),
         'devices': [],

@@ -480,7 +480,6 @@ def render_graph_tab(checkpoint, device, fasta_path):
 
             with st.spinner('Rendering graphs...'):
                 from pyvis.network import Network
-                import tempfile
                 for label, G, seq in [('Real', G_real, real_seq), ('Generated', G_gen, gen_seq)]:
                     st.markdown(f'**{label} De Bruijn graph (k={k_size})**')
                     net = Network(height='400px', width='100%', bgcolor='#ffffff', font_color='#333333', directed=True)

@@ -8,7 +8,6 @@
 
 | File | Source | Description |
 |---|---|---|
-| `ckpt_step_8000000.pt` | `runs/.../ckpt_step_8000000.pt` | PyTorch checkpoint (model weights + optimizer state) |
 | `model.safetensors` | Converted from `.pt` | Safe weights-only format (recommended for inference) |
 | `config.json` | `repo/moss-dna-gpt-20m-patens/config.json` | Model hyperparameters |
 | `loss.csv` | `repo/moss-dna-gpt-20m-patens/loss.csv` | Training/validation loss log |
@@ -16,6 +15,8 @@
 | `eval_curve.json` | `repo/moss-dna-gpt-20m-patens/eval_curve.json` | Evaluation curve (bits/base vs step) |
 | `learning_curve.png` | `repo/moss-dna-gpt-20m-patens/learning_curve.png` | Publication-quality learning curve figure |
 | `README.md` | `repo/moss-dna-gpt-20m-patens/README.md` | Model card (HF renders this automatically) |
+
+> **Prefer `model.safetensors` over `.pt`.** The `.pt` checkpoint (PyTorch pickle) may execute unsafe code on older PyTorch versions. Upload only the converted `model.safetensors` for the main model weights.
 
 ## Files NOT to upload
 
@@ -29,8 +30,10 @@
 ```bash
 python scripts/convert_to_safetensors.py \
     --checkpoint runs/physcomitrium_patens_20m_1024_sequence_2weeks/ckpt_step_8000000.pt \
-    --config config.json
+    --out-dir repo/moss-dna-gpt-20m-patens
 ```
+
+This produces `model.safetensors` in the output directory.
 
 ## Upload command
 
@@ -38,10 +41,23 @@ python scripts/convert_to_safetensors.py \
 pip install -e ".[hf]"
 
 python scripts/publish_to_hf.py \
-    --checkpoint runs/physcomitrium_patens_20m_1024_sequence_2weeks/ckpt_step_8000000.pt \
-    --config config.json \
     --repo-id your-username/moss-dna-gpt-20m-patens \
+    --local-dir repo/moss-dna-gpt-20m-patens \
     --token hf_xxxx
+```
+
+### Optional flags
+
+- `--private` — create a private repository
+- `--dry-run` — print what would be uploaded without uploading
+
+### Dry-run example
+
+```bash
+python scripts/publish_to_hf.py \
+    --repo-id your-username/moss-dna-gpt-20m-patens \
+    --local-dir repo/moss-dna-gpt-20m-patens \
+    --dry-run
 ```
 
 ## Model card limitations section

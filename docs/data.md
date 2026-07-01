@@ -24,7 +24,8 @@ python scripts/prepare_windows.py data/raw/genome.fa.gz \
     --stride 512 \
     --max-n-rate 0.2 \
     --shard \
-    --shard-size 100000
+    --shard-size 100000 \
+    --split-policy sequence
 ```
 
 - **Window size:** 1,024 bases

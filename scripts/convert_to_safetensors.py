@@ -30,6 +30,7 @@ def main() -> None:
     step = checkpoint.get('step', 'unknown')
 
     safetensors_path = out_dir / 'model.safetensors'
+    model_state = {k: v.clone().contiguous() for k, v in model_state.items()}
     save_file(model_state, str(safetensors_path))
     total_params = sum(t.numel() for t in model_state.values())
     print(f'Saved safetensors: {safetensors_path} ({len(model_state)} tensors, {total_params:,} params)')

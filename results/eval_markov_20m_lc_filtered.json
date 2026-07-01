@@ -1,0 +1,79 @@
+{
+  "train_path": "data/processed/physcomitrium_patens_5m_1024_sequence/train",
+  "test_path": "data/processed/physcomitrium_patens_5m_1024_sequence/test",
+  "streaming": true,
+  "settings": {
+    "orders": [
+      0,
+      1,
+      2,
+      3,
+      5
+    ],
+    "alpha": 0.5,
+    "imm": true,
+    "shuffled": true,
+    "filter_lc": 0.3,
+    "bootstrap": 0
+  },
+  "lc_filter": {
+    "threshold": 0.3,
+    "train_seqs_before": 681613,
+    "train_seqs_after": 681599,
+    "test_seqs_before": 173558,
+    "test_seqs_after": 173553,
+    "test_frac_removed": 2.8808813192116034e-05
+  },
+  "markov": {
+    "order_0": {
+      "order": 0,
+      "nats_per_base": 1.3343405946323632,
+      "bits_per_base": 1.925046558732941,
+      "tokens": 177718272
+    },
+    "order_1": {
+      "order": 1,
+      "nats_per_base": 1.3232313529878301,
+      "bits_per_base": 1.909019310904336,
+      "tokens": 177718272
+    },
+    "order_2": {
+      "order": 2,
+      "nats_per_base": 1.3191692418807304,
+      "bits_per_base": 1.9031589233545831,
+      "tokens": 177718272
+    },
+    "order_3": {
+      "order": 3,
+      "nats_per_base": 1.3139950016150246,
+      "bits_per_base": 1.8956940725828815,
+      "tokens": 177718272
+    },
+    "order_5": {
+      "order": 5,
+      "nats_per_base": 1.3073830957309431,
+      "bits_per_base": 1.8861551087530926,
+      "tokens": 177718272
+    },
+    "imm": {
+      "order": "interpolated_0..5",
+      "nats_per_base": 1.3073827582781816,
+      "bits_per_base": 1.8861546219116672,
+      "tokens": 177718272
+    },
+    "shuffled_k2": {
+      "order": 5,
+      "shuffle": "dinucleotide",
+      "nats_per_base": 1.32203767303207,
+      "bits_per_base": 1.9072971947517523,
+      "tokens": 177718272
+    },
+    "shuffled_k3": {
+      "order": 5,
+      "shuffle": "k3",
+      "nats_per_base": 1.3173239688727905,
+      "bits_per_base": 1.900496757136942,
+      "tokens": 177718272
+    }
+  }
+}

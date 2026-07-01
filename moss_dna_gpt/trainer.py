@@ -62,12 +62,12 @@ def set_seed(seed: int) -> None:
         torch.mps.manual_seed(seed)
 
 
-def evaluate(model: GPT, loader: DataLoader, device: str, batches: int) -> float:
+def evaluate(model: GPT, loader: DataLoader, device: str, batches: int | None = None) -> float:
     model.eval()
     values: list[float] = []
     with torch.no_grad():
         for i, (x, y) in enumerate(loader):
-            if i >= batches:
+            if batches is not None and i >= batches:
                 break
             _, loss = model(x.to(device), y.to(device))
             values.append(float(loss))

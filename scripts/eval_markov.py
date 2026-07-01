@@ -129,7 +129,8 @@ def main() -> None:
                         help='Filter out low-complexity windows (default: 0.3, set to 0 to skip)')
     parser.add_argument('--checkpoint')
     parser.add_argument('--batch-size', type=int, default=4)
-    parser.add_argument('--eval-batches', type=int, default=100)
+    parser.add_argument('--eval-batches', type=int, default=None,
+                        help='Number of batches for GPT eval (default: full test set)')
     parser.add_argument('--device', default='auto')
     parser.add_argument('--num-threads', type=int, default=1)
     parser.add_argument('--streaming', action='store_true', help='Read sharded/directory datasets lazily.')

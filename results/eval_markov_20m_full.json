@@ -1,0 +1,71 @@
+{
+  "train_path": "data/processed/physcomitrium_patens_5m_1024_sequence/train",
+  "test_path": "data/processed/physcomitrium_patens_5m_1024_sequence/test",
+  "streaming": true,
+  "settings": {
+    "orders": [
+      0,
+      1,
+      2,
+      3,
+      5
+    ],
+    "alpha": 0.5,
+    "imm": true,
+    "shuffled": true,
+    "filter_lc": null,
+    "bootstrap": 0
+  },
+  "markov": {
+    "order_0": {
+      "order": 0,
+      "nats_per_base": 1.3343364459969633,
+      "bits_per_base": 1.9250405735172231,
+      "tokens": 177723392
+    },
+    "order_1": {
+      "order": 1,
+      "nats_per_base": 1.3232286571861556,
+      "bits_per_base": 1.909015421684629,
+      "tokens": 177723392
+    },
+    "order_2": {
+      "order": 2,
+      "nats_per_base": 1.3191653514261394,
+      "bits_per_base": 1.903153310615038,
+      "tokens": 177723392
+    },
+    "order_3": {
+      "order": 3,
+      "nats_per_base": 1.3139901062295376,
+      "bits_per_base": 1.8956870100345162,
+      "tokens": 177723392
+    },
+    "order_5": {
+      "order": 5,
+      "nats_per_base": 1.3073757839888294,
+      "bits_per_base": 1.8861445601390048,
+      "tokens": 177723392
+    },
+    "imm": {
+      "order": "interpolated_0..5",
+      "nats_per_base": 1.3292591555433086,
+      "bits_per_base": 1.9177155917585826,
+      "tokens": 177723392
+    },
+    "shuffled_k2": {
+      "order": 5,
+      "shuffle": "dinucleotide",
+      "nats_per_base": 1.3220433195439436,
+      "bits_per_base": 1.9073053409464307,
+      "tokens": 177723392
+    },
+    "shuffled_k3": {
+      "order": 5,
+      "shuffle": "k3",
+      "nats_per_base": 1.3173161741248072,
+      "bits_per_base": 1.9004855116926815,
+      "tokens": 177723392
+    }
+  }
+}

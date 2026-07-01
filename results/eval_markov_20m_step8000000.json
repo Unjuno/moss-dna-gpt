@@ -5,8 +5,15 @@
   "organism": "Physcomitrium patens",
   "assembly": "GCA_000002425.3 / Phypa_V5",
   "split_policy": "sequence-level",
+  "window_size": 1024,
+  "train_windows": 681613,
+  "test_windows": 173558,
   "test_tokens": 177723392,
   "results": {
+    "dna_gpt_20m": {
+      "bits_per_base": 1.4166541975176796,
+      "nats_per_base": 0.9819498628377914
+    },
     "markov_order_0": {
       "order": 0,
       "bits_per_base": 1.9250405735172231,
@@ -17,14 +24,42 @@
       "bits_per_base": 1.909015421684629,
       "nats_per_base": 1.3232286571861556
     },
+    "markov_order_2": {
+      "order": 2,
+      "bits_per_base": 1.903153310615038,
+      "nats_per_base": 1.3191653514261394
+    },
+    "markov_order_3": {
+      "order": 3,
+      "bits_per_base": 1.8956870100345162,
+      "nats_per_base": 1.3139901062295376
+    },
     "markov_order_5": {
       "order": 5,
       "bits_per_base": 1.8861445601390048,
       "nats_per_base": 1.3073757839888294
     },
-    "dna_gpt_20m": {
-      "bits_per_base": 1.4166541975176796,
-      "nats_per_base": 0.9819498628377914
+    "imm_0..5": {
+      "order": "interpolated_0..5",
+      "bits_per_base": 1.8861440754998375,
+      "nats_per_base": 1.307375448062557
+    },
+    "shuffled_dinucleotide": {
+      "order": 5,
+      "shuffle_k": 2,
+      "bits_per_base": 1.9072822238853497,
+      "nats_per_base": 1.3220272960182324
+    },
+    "shuffled_k3": {
+      "order": 5,
+      "shuffle_k": 3,
+      "bits_per_base": 1.9004919306207908,
+      "nats_per_base": 1.3173206233867283
     }
+  },
+  "improvement_over_imm": {
+    "bits_per_base": -0.4694898779821579,
+    "nats_per_base": -0.3254255857752364,
+    "relative_improvement_pct": 24.89
   }
 }

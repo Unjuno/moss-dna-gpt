@@ -1,0 +1,13 @@
+{
+  "step": 8000000,
+  "model_config": {
+    "vocab_size": 9,
+    "block_size": 1024,
+    "n_layer": 12,
+    "n_head": 8,
+    "n_embd": 384,
+    "dropout": 0.1,
+    "bias": true
+  },
+  "param_count": 21694464
+}

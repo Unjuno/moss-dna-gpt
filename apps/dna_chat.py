@@ -190,7 +190,7 @@ def render_learning_curve():
         if not df.empty:
             markov = data.get("markov_baselines", {})
             columns = ['DNA-GPT'] + [k for k in markov.keys()]
-            st.line_chart(df, x='step', y=columns, height=350, use_container_width=True)
+            st.line_chart(df, x='step', y=columns, height=350, width='stretch')
             curve = data.get("dna_gpt_curve", [])
             final_bits = curve[-1]["bits_per_base"] if curve else 0
             cols = st.columns(len(markov) + 1)
@@ -297,7 +297,7 @@ def render_evaluate_tab(checkpoint, device, fasta_path):
 
     fa_path = Path(fasta_path)
     if not fa_path.exists():
-        st.warning(f'Real FASTA not found at {fa_path}. Using dummy data.')
+        st.warning(f'Real FASTA not found at {fa_path}. Download it first with `python scripts/fetch_genome.py`.')
         return
 
     col1, col2 = st.columns(2)
@@ -374,7 +374,7 @@ def render_graph_tab(checkpoint, device, fasta_path):
 
     fa_path = Path(fasta_path)
     if not fa_path.exists():
-        st.warning(f'Real FASTA not found at {fa_path}.')
+        st.warning(f'Real FASTA not found at {fa_path}. Download it first with `python scripts/fetch_genome.py`.')
         return
 
     viz_mode = st.radio('Visualization', ['Embedding Similarity Graph', 'UMAP Projection', 'De Bruijn Graph'], horizontal=True, label_visibility='collapsed')

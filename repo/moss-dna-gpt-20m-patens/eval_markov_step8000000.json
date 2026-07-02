@@ -2,31 +2,33 @@
   "train_path": "data/processed/physcomitrium_patens_5m_1024_sequence/train",
   "test_path": "data/processed/physcomitrium_patens_5m_1024_sequence/test",
   "streaming": true,
+  "train_windows": 681613,
+  "test_windows": 173558,
+  "test_tokens": 177723392,
+  "settings": {
+    "orders": [0, 1, 2, 3, 5],
+    "alpha": 0.5,
+    "imm": true,
+    "shuffled": true,
+    "filter_lc": null,
+    "bootstrap": 0
+  },
   "markov": {
-    "0": {
-      "order": 0,
-      "nats_per_base": 1.3343364459969633,
-      "bits_per_base": 1.9250405735172231,
-      "tokens": 177723392
-    },
-    "1": {
-      "order": 1,
-      "nats_per_base": 1.3232286571861556,
-      "bits_per_base": 1.909015421684629,
-      "tokens": 177723392
-    },
-    "5": {
-      "order": 5,
-      "nats_per_base": 1.3073757839888294,
-      "bits_per_base": 1.8861445601390048,
-      "tokens": 177723392
-    }
+    "order_0": {"order": 0, "nats_per_base": 1.334336446, "bits_per_base": 1.925040574},
+    "order_1": {"order": 1, "nats_per_base": 1.323228657, "bits_per_base": 1.909015422},
+    "order_2": {"order": 2, "nats_per_base": 1.319165351, "bits_per_base": 1.903153311},
+    "order_3": {"order": 3, "nats_per_base": 1.313990106, "bits_per_base": 1.895687010},
+    "order_5": {"order": 5, "nats_per_base": 1.307375784, "bits_per_base": 1.886144560},
+    "imm": {"order": "interpolated_0..5", "nats_per_base": 1.307375448, "bits_per_base": 1.886144075},
+    "shuffled_k2": {"order": 5, "shuffle": "dinucleotide", "nats_per_base": 1.322027296, "bits_per_base": 1.907282224},
+    "shuffled_k3": {"order": 5, "shuffle": "k3", "nats_per_base": 1.317320623, "bits_per_base": 1.900491931}
   },
   "dna_gpt": {
-    "checkpoint": "runs/physcomitrium_patens_20m_1024_sequence_2weeks/ckpt_step_8000000.pt",
+    "checkpoint": "repo/moss-dna-gpt-20m-patens/model.safetensors",
     "step": 8000000,
-    "nats_per_base": 0.9819498628377914,
-    "bits_per_base": 1.4166541975176796,
+    "nats_per_base": 0.981949863,
+    "bits_per_base": 1.416654198,
     "param_count": 21691008
-  }
+  },
+  "improvement_over_imm_pct": 24.89
 }

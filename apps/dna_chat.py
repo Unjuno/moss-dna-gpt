@@ -85,9 +85,20 @@ def build_curve_df():
     for pt in curve:
         row = {"step": pt["step"], "DNA-GPT": pt["bits_per_base"]}
         for name, v in markov.items():
-            row[name] = v["bits_per_base"]
+            row.setdefault(_label(name), v["bits_per_base"])
+        # fill missing columns
         rows.append(row)
-    return pd.DataFrame(rows)
+    # ensure all markov columns present (constant line across all rows)
+    df = pd.DataFrame(rows)
+    for name, v in markov.items():
+        col = _label(name)
+        if col not in df.columns or df[col].isna().any():
+            df[col] = v["bits_per_base"]
+    return df
+
+
+def _label(name: str) -> str:
+    return name.replace("markov_", "Markov order ").replace("imm", "IMM").replace("shuffled_", "Shuffled ")
 
 
 def parse_cli_args() -> argparse.Namespace:
@@ -203,16 +214,25 @@ def render_learning_curve():
         df = build_curve_df()
         if not df.empty:
             markov = data.get("markov_baselines", {})
-            columns = ['DNA-GPT'] + [k for k in markov.keys()]
-            st.line_chart(df, x='step', y=columns, height=350, width='stretch')
+            label_display = {k: _label(k) for k in markov}
+            columns = ['DNA-GPT'] + list(markov.keys())
+            rename = {'DNA-GPT': 'DNA-GPT'}
+            rename.update({k: _label(k) for k in markov if k != 'DNA-GPT'})
+            st.line_chart(df.rename(columns=rename), x='step', y=list(rename.values()), height=350, width='stretch')
             curve = data.get("dna_gpt_curve", [])
             final_bits = curve[-1]["bits_per_base"] if curve else 0
-            cols = st.columns(len(markov) + 1)
-            cols[0].metric('DNA-GPT (8M steps)', f'{final_bits:.4f}')
-            for i, (name, v) in enumerate(markov.items()):
-                cols[i + 1].metric(name, f'{v["bits_per_base"]:.4f}')
-            improvement = ((list(markov.values())[-1]["bits_per_base"] - final_bits) / list(markov.values())[-1]["bits_per_base"]) * 100 if markov else 0
-            st.success(f'DNA-GPT outperforms all Markov baselines by **{improvement:.1f}%** (bits/base)')
+            n_cols = len(markov) + 1
+            cols = st.columns(min(n_cols, 6))
+            cols[0].metric('DNA-GPT (8M)', f'{final_bits:.4f}')
+            shown = 0
+            for name, v in markov.items():
+                shown += 1
+                if shown >= 5:
+                    break
+                cols[shown].metric(_label(name), f'{v["bits_per_base"]:.4f}')
+            ref = markov.get('imm') or markov.get('markov_5') or list(markov.values())[-1]
+            improvement = ((ref["bits_per_base"] - final_bits) / ref["bits_per_base"]) * 100
+            st.success(f'DNA-GPT outperforms the strongest baseline (IMM) by **{improvement:.1f}%**')
         else:
             st.info('Run `python scripts/eval_all_checkpoints.py` to generate eval data.')
 

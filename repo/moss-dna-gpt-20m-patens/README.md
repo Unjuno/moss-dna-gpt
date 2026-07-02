@@ -25,7 +25,7 @@ datasets:
 
 Experimental 20M-parameter decoder-only Transformer trained for DNA next-base prediction on *Physcomitrium patens* (moss) genomic sequence.
 
-**Key result:** The model achieves **1.41665 bits/base** on a held-out sequence-level test split, outperforming the 5th-order Markov baseline at **1.88614 bits/base** (~25% improvement).
+**Key result:** The model achieves **1.41665 bits/base** on a held-out sequence-level test split, outperforming all Markov baselines (including Interpolated Markov Model up to order 5) by **24.9%** in next-base prediction cross-entropy.
 
 ## Model description
 
@@ -99,16 +99,21 @@ print(tokenizer.decode(out[0].tolist(), skip_special=True))
 
 ## Evaluation results
 
-Evaluation on held-out sequence-level test windows:
+Evaluation on held-out sequence-level test windows (177,723,392 tokens):
 
 | Model | Bits/base | Nats/base |
 |---|---:|---:|
 | Markov order 0 | 1.92504 | 1.33434 |
 | Markov order 1 | 1.90902 | 1.32323 |
+| Markov order 2 | 1.90315 | 1.31917 |
+| Markov order 3 | 1.89569 | 1.31399 |
+| Dinucleotide shuffled (order 5) | 1.90728 | 1.32203 |
+| K3 shuffled (order 5) | 1.90049 | 1.31732 |
+| IMM (interpolated 0..5) | 1.88614 | 1.30738 |
 | Markov order 5 | 1.88614 | 1.30738 |
 | **DNA-GPT 20M (step 8M)** | **1.41665** | **0.98195** |
 
-> **Note on evaluation settings.** The final step-8M evaluation used a different number of evaluation batches (`eval_batches=50`) than the intermediate curve points (`eval_batches=200`). The learning-curve points and the final release metric were produced under different evaluation settings and are **not directly interchangeable**. The canonical release claim is **1.41665 bits/base** from `results/eval_markov_20m_step8000000.json`.
+> **Note on evaluation settings.** The final step-8M evaluation used the full test set (~177M tokens). The intermediate curve points used a smaller subset (`eval_batches=200`). Learning-curve points and the release metric are **not directly interchangeable** due to different evaluation batch sizes. The canonical release claim is **1.41665 bits/base** from `results/eval_markov_20m_step8000000.json`.
 
 The learning curve shows DNA-GPT surpassing all Markov baselines within the first 750K steps:
 

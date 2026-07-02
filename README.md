@@ -18,12 +18,17 @@ Minimal research scaffold for pretraining a small decoder-only Transformer (GPT)
 
 ## Result
 
-On a **sequence-level held-out test split** of *Physcomitrium patens*, the 20M-parameter DNA-GPT outperforms 0th, 1st, and 5th order Markov baselines in bits/base:
+On a **sequence-level held-out test split** of *Physcomitrium patens*, the 20M-parameter DNA-GPT achieves **1.41665 bits/base**, outperforming all Markov baselines by ~25%:
 
 | Model | Bits/base |
 |---|---:|
 | Markov order 0 | 1.92504 |
 | Markov order 1 | 1.90902 |
+| Markov order 2 | 1.90315 |
+| Markov order 3 | 1.89569 |
+| Dinucleotide shuffled (order 5) | 1.90728 |
+| K3 shuffled (order 5) | 1.90049 |
+| IMM (0..5) | 1.88614 |
 | Markov order 5 | 1.88614 |
 | **DNA-GPT 20M (step 8M)** | **1.41665** |
 

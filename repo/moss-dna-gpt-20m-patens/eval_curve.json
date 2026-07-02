@@ -5,7 +5,12 @@
   "markov_baselines": {
     "markov_0": {"bits_per_base": 1.9250405735172231, "order": 0},
     "markov_1": {"bits_per_base": 1.9090154216846290, "order": 1},
-    "markov_5": {"bits_per_base": 1.8861445601390048, "order": 5}
+    "markov_2": {"bits_per_base": 1.9031533106150380, "order": 2},
+    "markov_3": {"bits_per_base": 1.8956870100345162, "order": 3},
+    "markov_5": {"bits_per_base": 1.8861445601390048, "order": 5},
+    "imm": {"bits_per_base": 1.8861440754998375, "order": "interpolated_0..5"},
+    "shuffled_dinucleotide": {"bits_per_base": 1.9072822238853497, "order": 5},
+    "shuffled_k3": {"bits_per_base": 1.9004919306207908, "order": 5}
   },
   "dna_gpt_curve": [
     {"step": 250000, "bits_per_base": 1.626442},

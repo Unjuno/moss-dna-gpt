@@ -40,3 +40,6 @@ Thumbs.db
 
 #opencode setting 
 opencode.json
+
+# JS libraries (pyvis runtime artifacts)
+lib/
